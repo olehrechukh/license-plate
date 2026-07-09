@@ -1,0 +1,61 @@
+/* Design tokens — modern-refresh light theme */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --border: #e2e5ea;
+  --text: #1a1d23;
+  --text-muted: #646b78;
+  --text-faint: #9aa1ad;
+
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #e8f0fe;
+
+  /* Ukrainian plate palette */
+  --ua-blue: #0a3d91;
+  --ua-flag-blue: #0057b7;
+  --ua-yellow: #ffd700;
+  --ua-green: #157347;
+
+  --danger: #dc2626;
+  --danger-soft: #fdecec;
+  --warning: #d97706;
+  --success: #16a34a;
+  --success-soft: #e7f6ec;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(20, 24, 32, 0.06);
+  --shadow: 0 4px 16px rgba(20, 24, 32, 0.08);
+  --shadow-lg: 0 10px 32px rgba(20, 24, 32, 0.12);
+
+  --space: 16px;
+  --container: 1080px;
+
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-plate: 'Segoe UI', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3 { line-height: 1.2; margin: 0; }
+
+img { max-width: 100%; display: block; }
+
+button { font-family: inherit; cursor: pointer; }
