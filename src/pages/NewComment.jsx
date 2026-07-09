@@ -5,6 +5,10 @@ import { useFeed } from '../data/FeedContext.jsx'
 import { useFeedData, normalizePlate } from '../data/useFeedData.js'
 import { provinceForPlateCode } from '../data/plateRegions.js'
 
+const MAX_PLATE_LENGTH = 8
+const MAX_DESCRIPTION_LENGTH = 1000
+const MAX_AUTHOR_LENGTH = 50
+
 export default function NewComment() {
   const { s, strings } = useI18n()
   const navigate = useNavigate()
@@ -76,6 +80,7 @@ export default function NewComment() {
             value={form.plate}
             onChange={update('plate')}
             placeholder={fields.plate.placeholder}
+            maxLength={MAX_PLATE_LENGTH}
             autoComplete="off"
           />
           <span className={`field__help ${plateError ? 'has-error' : ''}`}>{fields.plate.help}</span>
@@ -108,6 +113,7 @@ export default function NewComment() {
             value={form.description}
             onChange={update('description')}
             placeholder={fields.description.placeholder}
+            maxLength={MAX_DESCRIPTION_LENGTH}
             rows={5}
           />
           <span className={`field__help ${descError ? 'has-error' : ''}`}>
@@ -139,6 +145,7 @@ export default function NewComment() {
             value={form.author}
             onChange={update('author')}
             placeholder={fields.author.placeholder}
+            maxLength={MAX_AUTHOR_LENGTH}
             autoComplete="off"
           />
         </div>
