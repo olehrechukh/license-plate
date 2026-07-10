@@ -20,8 +20,7 @@ export default function AppGate({ children }) {
         </span>
         <h1 className="boot__title">Could not load data / Не вдалося завантажити дані</h1>
         <p className="boot__text">
-          The app reads its content from Supabase. Make sure the database is reachable and
-          that <code>supabase/schema.sql</code> and <code>supabase/seed.sql</code> have been run.
+          The app reads its content from Supabase.
         </p>
         <button className="btn btn--primary" onClick={retry}>Retry / Повторити</button>
       </div>
