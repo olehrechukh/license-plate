@@ -42,12 +42,13 @@ export async function fetchComments({ plate, province, sort = 'newest', from = 0
   return { rows: (data || []).map(toComment), count: count || 0 }
 }
 
-// A single plate's record (province + seeded score) for the plate detail header.
+// A single plate's live record for the plate detail header. It uses the same
+// derived score as the leaderboard, so the two views cannot diverge.
 export async function fetchPlate(code) {
   if (!supabase) return null
   const { data, error } = await supabase
-    .from('plates')
-    .select('plate, province, score')
+    .from('plate_rankings')
+    .select('plate, province, score, comment_count')
     .eq('plate', code)
     .maybeSingle()
   if (error) {

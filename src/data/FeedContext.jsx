@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { normalizePlate } from './useFeedData.js'
+import { isValidPlate, normalizePlate } from './useFeedData.js'
 import { provinceForPlateCode } from './plateRegions.js'
 import { supabase, hasSupabase, voterKey } from '../lib/supabase.js'
 import { fetchRankings, fetchProvinceCounts } from './feedApi.js'
+import { useAuth } from '../auth/AuthContext.jsx'
 
 const FeedContext = createContext(null)
 
@@ -22,16 +23,14 @@ function readSessionVotes() {
 const PHOTO_BUCKET = 'comment-photos'
 
 async function uploadPhoto(file, plate, id) {
-  if (!supabase || !file) return null
+  if (!file) return null
+  if (!supabase) throw new Error('Supabase is not configured.')
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
   const path = `${plate}/${id}.${ext || 'jpg'}`
   const { error } = await supabase.storage
     .from(PHOTO_BUCKET)
     .upload(path, file, { upsert: false, contentType: file.type || undefined })
-  if (error) {
-    console.warn('[feed] photo upload failed:', error.message || error)
-    return null
-  }
+  if (error) throw new Error(error.message || 'Photo upload failed.')
   return supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl
 }
 
@@ -53,6 +52,13 @@ export function FeedProvider({ children }) {
   // Mirror of the ledger, mutated synchronously so rapid clicks toggle correctly
   // (state closures lag by a render; a ref does not).
   const sessionVotesRef = useRef(sessionVotes)
+
+  // Current signed-in user, read from a ref so castVote's identity stays fresh
+  // across login/logout without re-creating the callback (which would re-render
+  // every comment card).
+  const { user } = useAuth()
+  const userRef = useRef(user)
+  useEffect(() => { userRef.current = user }, [user])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -90,8 +96,8 @@ export function FeedProvider({ children }) {
   useEffect(() => { refresh() }, [refresh])
 
   const provinceForPlate = useCallback((plate) => {
-    return provinceForPlateCode(plate) || (data?.provinces[0]?.slug ?? 'kyiv-city')
-  }, [data])
+    return provinceForPlateCode(plate)
+  }, [])
 
   // Toggle a vote in direction `dir` (1 = up, -1 = down). One vote per comment
   // per session: clicking the active direction again clears it. Reads the latest
@@ -115,15 +121,19 @@ export function FeedProvider({ children }) {
     const dUp = (value === 1 ? 1 : 0) - (prev === 1 ? 1 : 0)
     const dDown = (value === -1 ? 1 : 0) - (prev === -1 ? 1 : 0)
 
-    // Persist to Supabase (best effort). Writes go through the cast_vote RPC —
-    // the votes table has no direct write policies (see schema.sql); value 0
-    // clears this voter's vote on the comment.
+    // Persist to Supabase (best effort). Writes go through a SECURITY DEFINER
+    // RPC — the votes table has no direct write policies (see schema.sql); value
+    // 0 clears this voter's vote on the comment. Signed-in users vote via
+    // cast_vote_auth, which derives identity from auth.uid() server-side so their
+    // vote can't be dropped or flipped by anyone else; anonymous visitors keep
+    // the per-browser voter_key path.
     if (supabase) {
-      supabase
-        .rpc('cast_vote', { p_comment_id: comment.id, p_voter_key: voterKey(), p_value: value })
-        .then(({ error: e } = {}) => {
-          if (e) console.warn('[feed] vote failed:', e.message || e)
-        })
+      const request = userRef.current
+        ? supabase.rpc('cast_vote_auth', { p_comment_id: comment.id, p_value: value })
+        : supabase.rpc('cast_vote', { p_comment_id: comment.id, p_voter_key: voterKey(), p_value: value })
+      request.then(({ error: e } = {}) => {
+        if (e) console.warn('[feed] vote failed:', e.message || e)
+      })
     }
     return { dUp, dDown }
   }, [])
@@ -131,29 +141,30 @@ export function FeedProvider({ children }) {
   const addComment = useCallback(async ({ plate, category, description, author, photoFile }) => {
     const norm = normalizePlate(plate)
     const province = provinceForPlate(norm)
+    if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
+    if (!isValidPlate(norm) || !province) throw new Error('Invalid Ukrainian regional plate.')
+
     const id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `c-${Date.now()}`
-    if (supabase) {
-      try {
-        const photo = await uploadPhoto(photoFile, norm, id)
-        // ignoreDuplicates: existing plates are left untouched (there is no
-        // update policy on plates, so the ON CONFLICT UPDATE path would fail).
-        await supabase.from('plates').upsert(
-          { plate: norm, province, score: 0 },
-          { onConflict: 'plate', ignoreDuplicates: true }
-        )
-        // created_at is left to the DB default now() — the insert policy
-        // rejects forged timestamps, and client clocks can be skewed.
-        await supabase.from('comments').insert({
-          id, plate: norm, author: author || null, category,
-          text_uk: description, text_en: description, photo, upvotes: 0, downvotes: 0
-        })
-        // Reflect the new comment in the leaderboard / province counts. The plate
-        // detail page the user lands on next fetches its own fresh comment page.
-        refresh()
-      } catch (e) {
-        console.warn('[feed] addComment failed:', e.message || e)
-      }
-    }
+    const photo = await uploadPhoto(photoFile, norm, id)
+    // ignoreDuplicates: existing plates are left untouched (there is no
+    // update policy on plates, so the ON CONFLICT UPDATE path would fail).
+    const { error: plateError } = await supabase.from('plates').upsert(
+      { plate: norm, province },
+      { onConflict: 'plate', ignoreDuplicates: true }
+    )
+    if (plateError) throw new Error(plateError.message || 'Could not save the plate.')
+
+    // created_at is left to the DB default now — the insert policy rejects
+    // forged timestamps, and client clocks can be skewed.
+    const { error: commentError } = await supabase.from('comments').insert({
+      id, plate: norm, author: author || null, category,
+      text_uk: description, text_en: description, photo, upvotes: 0, downvotes: 0
+    })
+    if (commentError) throw new Error(commentError.message || 'Could not save the comment.')
+
+    // Reflect the new comment in the leaderboard / province counts. The plate
+    // detail page the user lands on next fetches its own fresh comment page.
+    await refresh()
     return { plate: norm }
   }, [provinceForPlate, refresh])
 

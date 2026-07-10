@@ -2,8 +2,22 @@ import { useMemo } from 'react'
 import { useI18n } from '../i18n/useI18n.js'
 import { useFeed } from './FeedContext.jsx'
 
+const CYRILLIC_TO_LATIN = {
+  '\u0410': 'A', '\u0412': 'B', '\u0415': 'E', '\u0406': 'I', '\u041a': 'K', '\u041c': 'M',
+  '\u041d': 'H', '\u041e': 'O', '\u0420': 'P', '\u0421': 'C', '\u0422': 'T', '\u0425': 'X'
+}
+
 export function normalizePlate(value) {
-  return String(value || '').toUpperCase().replace(/\s+/g, '').trim()
+  return String(value || '')
+    .toUpperCase()
+    .replace(/[\u0410\u0412\u0415\u0406\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425]/g, (letter) => CYRILLIC_TO_LATIN[letter])
+    .replace(/\s+/g, '')
+    .trim()
+}
+
+// Browser-side equivalent of the public plate syntax accepted by the database.
+export function isValidPlate(value) {
+  return /^[A-Z0-9]{3,10}$/.test(normalizePlate(value))
 }
 
 /**
