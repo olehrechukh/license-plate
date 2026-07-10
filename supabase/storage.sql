@@ -16,8 +16,10 @@ on conflict (id) do update
       file_size_limit    = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
--- Anonymous upload + public read for this bucket (demo policy — tighten if you
--- add authentication).
+-- Public read, authenticated upload. Photos are only ever uploaded as part of
+-- adding a comment, which requires auth (see schema.sql) — so uploads are gated
+-- the same way. `to authenticated` makes the insert policy inapplicable to the
+-- anon role, so anonymous uploads are denied.
 drop policy if exists "comment photos read"   on storage.objects;
 drop policy if exists "comment photos insert" on storage.objects;
 
@@ -26,5 +28,5 @@ create policy "comment photos read"
   using (bucket_id = 'comment-photos');
 
 create policy "comment photos insert"
-  on storage.objects for insert
+  on storage.objects for insert to authenticated
   with check (bucket_id = 'comment-photos');

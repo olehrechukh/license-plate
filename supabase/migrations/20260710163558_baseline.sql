@@ -1,7 +1,8 @@
 -- ============================================================================
--- License Plate clone — Supabase schema
--- Run this in the Supabase SQL Editor (Dashboard → SQL → New query), then run
--- seed.sql. Safe to re-run: uses IF NOT EXISTS / CREATE OR REPLACE.
+-- Baseline migration — full schema + storage config for the License Plate app.
+-- Assembled from supabase/schema.sql and supabase/storage.sql.
+-- Data (config, UI strings, provinces, auth labels) is applied separately via
+-- supabase/seed.sql + supabase/auth.sql after this runs.
 -- ============================================================================
 
 -- ---- Reference / i18n tables -----------------------------------------------
@@ -276,3 +277,29 @@ end $$;
 
 grant execute on function public.cast_vote(text, text, int) to anon, authenticated;
 grant execute on function public.cast_vote_auth(text, int) to authenticated;
+
+-- ---- Storage: comment-photos bucket ----------------------------------------
+
+-- Public bucket so uploaded photos are served via public URLs. Uploads are
+-- capped at 5 MB and restricted to image MIME types (enforced server-side —
+-- the anon key is public, so uploads can bypass the app's file picker).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('comment-photos', 'comment-photos', true, 5242880,
+        array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+on conflict (id) do update
+  set public             = true,
+      file_size_limit    = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+-- Public read, authenticated upload. Photos are only ever uploaded as part of
+-- adding a comment, which requires auth — so uploads are gated the same way.
+drop policy if exists "comment photos read"   on storage.objects;
+drop policy if exists "comment photos insert" on storage.objects;
+
+create policy "comment photos read"
+  on storage.objects for select
+  using (bucket_id = 'comment-photos');
+
+create policy "comment photos insert"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'comment-photos');
