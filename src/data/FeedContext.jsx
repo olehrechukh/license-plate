@@ -4,6 +4,7 @@ import { provinceForPlateCode } from './plateRegions.js'
 import { supabase, hasSupabase, voterKey } from '../lib/supabase.js'
 import { fetchRankings, fetchProvinceCounts } from './feedApi.js'
 import { useAuth } from '../auth/AuthContext.jsx'
+import { config as appConfig } from '../i18n/strings.js'
 
 const FeedContext = createContext(null)
 
@@ -69,19 +70,19 @@ export function FeedProvider({ children }) {
     }
     try {
       // Only lightweight, whole-app data is loaded up front: regions, the
-      // leaderboard, per-province counts and the ranking period. The (up to 10k+)
-      // comments are paged on demand by each page via feedApi.
-      const [provincesR, rankings, provinceCounts, configR] = await Promise.all([
+      // leaderboard and per-province counts. The ranking period is static config
+      // (see i18n/strings.js). The (up to 10k+) comments are paged on demand by
+      // each page via feedApi.
+      const [provincesR, rankings, provinceCounts] = await Promise.all([
         supabase.from('provinces').select('slug, code, name_uk, name_en, sort'),
         fetchRankings(10),
-        fetchProvinceCounts(),
-        supabase.from('app_config').select('ranking_period').eq('id', 1).maybeSingle()
+        fetchProvinceCounts()
       ])
-      if (provincesR.error || configR.error) throw provincesR.error || configR.error
+      if (provincesR.error) throw provincesR.error
 
       setData({
         provinces: buildProvinces(provincesR.data),
-        rankings: { period: configR.data?.ranking_period || '', entries: rankings },
+        rankings: { period: appConfig.rankingPeriod, entries: rankings },
         provinceCounts
       })
       setError(null)

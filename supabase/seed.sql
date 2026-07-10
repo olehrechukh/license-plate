@@ -40,3 +40,9 @@ insert into public.provinces (slug, code, name_uk, name_en, sort) values
   ('kyiv-city', 'AA', 'м. Київ', 'Kyiv (city)', 25),
   ('sevastopol-city', 'CH', 'м. Севастополь', 'Sevastopol (city)', 26)
 on conflict (slug) do update set code = excluded.code, name_uk = excluded.name_uk, name_en = excluded.name_en, sort = excluded.sort;
+
+
+insert into public.app_strings (lang, data) values
+  ('uk', '{"auth":{"googleSignIn":"Увійти через Google","signOut":"Вийти","signingIn":"Переадресація…","signInFailed":"Не вдалося увійти через Google. Спробуйте ще раз."}}'::jsonb),
+  ('en', '{"auth":{"googleSignIn":"Sign in with Google","signOut":"Sign out","signingIn":"Redirecting…","signInFailed":"Could not sign in with Google. Please try again."}}'::jsonb)
+on conflict (lang) do update set data = jsonb_set(coalesce(public.app_strings.data, '{}'::jsonb), '{auth}', excluded.data -> 'auth', true);

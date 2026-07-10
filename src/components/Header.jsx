@@ -55,9 +55,9 @@ export default function Header() {
             </NavLink>
           ))}
           <div className="site-nav__tools">
-            <AuthControl />
             <PlateSearch compact onSubmitSuccess={() => setOpen(false)} />
             <LangSwitch />
+            <AuthControl />
           </div>
         </nav>
       </div>
