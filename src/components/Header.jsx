@@ -3,6 +3,7 @@ import { NavLink, Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n.js'
 import PlateSearch from './PlateSearch.jsx'
 import LangSwitch from './LangSwitch.jsx'
+import AuthControl from './AuthControl.jsx'
 
 export default function Header() {
   const { s } = useI18n()
@@ -54,6 +55,7 @@ export default function Header() {
             </NavLink>
           ))}
           <div className="site-nav__tools">
+            <AuthControl />
             <PlateSearch compact onSubmitSuccess={() => setOpen(false)} />
             <LangSwitch />
           </div>
