@@ -61,7 +61,7 @@ as $$
       select count(*)
       from storage.objects
       where bucket_id = 'comment-photos'
-        and owner_id = auth.uid()
+        and owner_id = auth.uid()::text
         and created_at >= now() - interval '1 hour'
     ) < 10;
 $$;
