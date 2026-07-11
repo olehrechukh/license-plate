@@ -4,19 +4,40 @@ import { provinceForPlateCode } from './plateRegions.js'
 import { supabase, hasSupabase, voterKey } from '../lib/supabase.js'
 import { fetchRankings, fetchProvinceCounts } from './feedApi.js'
 import { useAuth } from '../auth/AuthContext.jsx'
-import { config as appConfig } from '../i18n/strings.js'
+import { currentRankingPeriod } from '../i18n/strings.js'
 
 const FeedContext = createContext(null)
 
 // Vote ledger: { [commentId]: -1 | 1 } — one vote per comment, persisted per
-// BROWSER (localStorage) so it's shared across tabs alongside the voter id. A
-// voter may vote on many different comments, each independently (+ or -, none).
+// voter identity so signing in cannot make anonymous votes appear selected.
 const SESSION_VOTES_KEY = 'lp-session-votes'
-function readSessionVotes() {
+function readSessionVotes(storageKey) {
   try {
-    return JSON.parse(localStorage.getItem(SESSION_VOTES_KEY)) || {}
+    const stored = localStorage.getItem(storageKey)
+    if (stored) return JSON.parse(stored) || {}
+    if (storageKey === `${SESSION_VOTES_KEY}:anonymous`) {
+      return JSON.parse(localStorage.getItem(SESSION_VOTES_KEY)) || {}
+    }
+    return {}
   } catch {
     return {}
+  }
+}
+
+function voteStorageKey(user) {
+  return user?.id
+    ? `${SESSION_VOTES_KEY}:user:${user.id}`
+    : `${SESSION_VOTES_KEY}:anonymous`
+}
+
+function writeSessionVotes(storageKey, votes) {
+  try { localStorage.setItem(storageKey, JSON.stringify(votes)) } catch { /* ignore */ }
+}
+
+function voteDelta(from, to) {
+  return {
+    up: (to === 1 ? 1 : 0) - (from === 1 ? 1 : 0),
+    down: (to === -1 ? 1 : 0) - (from === -1 ? 1 : 0)
   }
 }
 
@@ -45,21 +66,35 @@ function buildProvinces(provincesRows) {
 }
 
 export function FeedProvider({ children }) {
+  const { user } = useAuth()
+  const storageKey = voteStorageKey(user)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   // { [commentId]: -1 | 1 } — one entry per voted comment this session.
-  const [sessionVotes, setSessionVotes] = useState(readSessionVotes)
+  const [sessionVotes, setSessionVotes] = useState(() => readSessionVotes(storageKey))
+  const [voteDeltas, setVoteDeltas] = useState({})
   // Mirror of the ledger, mutated synchronously so rapid clicks toggle correctly
   // (state closures lag by a render; a ref does not).
   const sessionVotesRef = useRef(sessionVotes)
+  const storageKeyRef = useRef(storageKey)
+  const voteRequestsRef = useRef(new Map())
+  const voteOperationsRef = useRef(new Map())
 
   // Current signed-in user, read from a ref so castVote's identity stays fresh
-  // across login/logout without re-creating the callback (which would re-render
-  // every comment card).
-  const { user } = useAuth()
+  // across login/logout without re-creating the callback.
   const userRef = useRef(user)
   useEffect(() => { userRef.current = user }, [user])
+
+  useEffect(() => {
+    storageKeyRef.current = storageKey
+    const next = readSessionVotes(storageKey)
+    sessionVotesRef.current = next
+    voteRequestsRef.current = new Map()
+    voteOperationsRef.current = new Map()
+    setSessionVotes(next)
+    setVoteDeltas({})
+  }, [storageKey])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -70,8 +105,8 @@ export function FeedProvider({ children }) {
     }
     try {
       // Only lightweight, whole-app data is loaded up front: regions, the
-      // leaderboard and per-province counts. The ranking period is static config
-      // (see i18n/strings.js). The (up to 10k+) comments are paged on demand by
+      // leaderboard and per-province counts. The SQL view limits rankings to the
+      // current month. The (up to 10k+) comments are paged on demand by
       // each page via feedApi.
       const [provincesR, rankings, provinceCounts] = await Promise.all([
         supabase.from('provinces').select('slug, code, name_uk, name_en, sort'),
@@ -82,7 +117,7 @@ export function FeedProvider({ children }) {
 
       setData({
         provinces: buildProvinces(provincesR.data),
-        rankings: { period: appConfig.rankingPeriod, entries: rankings },
+        rankings: { period: currentRankingPeriod(), entries: rankings },
         provinceCounts
       })
       setError(null)
@@ -100,45 +135,70 @@ export function FeedProvider({ children }) {
     return provinceForPlateCode(plate)
   }, [])
 
-  // Toggle a vote in direction `dir` (1 = up, -1 = down). One vote per comment
-  // per session: clicking the active direction again clears it. Reads the latest
-  // ledger from a ref so back-to-back clicks resolve correctly (no stale render).
-  // Returns the up/down delta { dUp, dDown } for the transition so the calling
-  // card can optimistically adjust its own displayed counts, or null if the click
-  // was a no-op. Comments no longer live in a global array, so there's nothing to
-  // mutate here beyond the session ledger + persistence.
+  // Toggle one vote per comment. The optimistic delta is shared by all cards and
+  // is rolled back if the corresponding RPC fails.
   const castVote = useCallback((comment, dir) => {
     const prev = sessionVotesRef.current[comment.id] || 0
-    const value = prev === dir ? 0 : dir // same direction toggles off
-    if (value - prev === 0) return null
+    const value = prev === dir ? 0 : dir
+    if (value === prev) return null
 
     const next = { ...sessionVotesRef.current }
     if (value === 0) delete next[comment.id]
     else next[comment.id] = value
     sessionVotesRef.current = next
-    try { localStorage.setItem(SESSION_VOTES_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+    writeSessionVotes(storageKeyRef.current, next)
     setSessionVotes(next)
 
-    const dUp = (value === 1 ? 1 : 0) - (prev === 1 ? 1 : 0)
-    const dDown = (value === -1 ? 1 : 0) - (prev === -1 ? 1 : 0)
+    const transition = voteDelta(prev, value)
+    const operations = voteOperationsRef.current.get(comment.id) || { base: prev, ops: [] }
+    const operation = { value, status: 'pending' }
+    operations.ops.push(operation)
+    voteOperationsRef.current.set(comment.id, operations)
+    const identityKey = storageKeyRef.current
+    const signedInUser = userRef.current
+    const anonymousKey = signedInUser ? null : voterKey()
+    const previousRequest = voteRequestsRef.current.get(comment.id) || Promise.resolve()
+    const request = previousRequest.catch(() => {}).then(async () => {
+      if (!supabase) return
+      const result = signedInUser
+        ? await supabase.rpc('cast_vote_auth', { p_comment_id: comment.id, p_value: value })
+        : await supabase.rpc('cast_vote', { p_comment_id: comment.id, p_voter_key: anonymousKey, p_value: value })
+      if (result?.error) throw result.error
+      operation.status = 'success'
+    })
+    voteRequestsRef.current.set(comment.id, request)
 
-    // Persist to Supabase (best effort). Writes go through a SECURITY DEFINER
-    // RPC — the votes table has no direct write policies (see schema.sql); value
-    // 0 clears this voter's vote on the comment. Signed-in users vote via
-    // cast_vote_auth, which derives identity from auth.uid() server-side so their
-    // vote can't be dropped or flipped by anyone else; anonymous visitors keep
-    // the per-browser voter_key path.
-    if (supabase) {
-      const request = userRef.current
-        ? supabase.rpc('cast_vote_auth', { p_comment_id: comment.id, p_value: value })
-        : supabase.rpc('cast_vote', { p_comment_id: comment.id, p_voter_key: voterKey(), p_value: value })
-      request.then(({ error: e } = {}) => {
-        if (e) console.warn('[feed] vote failed:', e.message || e)
+    const optimisticDelta = voteDelta(operations.base, value)
+    setVoteDeltas((current) => ({ ...current, [comment.id]: optimisticDelta }))
+
+    request.catch((e) => {
+      console.warn('[feed] vote failed:', e.message || e)
+      if (storageKeyRef.current !== identityKey) return
+      operation.status = 'failed'
+      const active = operations.ops.slice().reverse().find((item) => item.status !== 'failed')
+      const restoredVote = active ? active.value : operations.base
+      const restored = { ...sessionVotesRef.current }
+      if (restoredVote === 0) delete restored[comment.id]
+      else restored[comment.id] = restoredVote
+      sessionVotesRef.current = restored
+      writeSessionVotes(storageKeyRef.current, restored)
+      setSessionVotes(restored)
+      const base = operations.base
+      const currentVote = restoredVote
+      const updated = voteDelta(base, currentVote)
+      setVoteDeltas((current) => {
+        const nextDeltas = { ...current }
+        if (updated.up === 0 && updated.down === 0) delete nextDeltas[comment.id]
+        else nextDeltas[comment.id] = updated
+        return nextDeltas
       })
-    }
-    return { dUp, dDown }
+    }).finally(() => {
+      if (voteRequestsRef.current.get(comment.id) === request) {
+        voteRequestsRef.current.delete(comment.id)
+      }
+    })
+    return { dUp: transition.up, dDown: transition.down }
   }, [])
-
   const addComment = useCallback(async ({ plate, category, description, author, photoFile }) => {
     const norm = normalizePlate(plate)
     const province = provinceForPlate(norm)
@@ -178,8 +238,9 @@ export function FeedProvider({ children }) {
     refresh,
     castVote,
     addComment,
-    sessionVotes
-  }), [data, loading, error, refresh, castVote, addComment, sessionVotes])
+    sessionVotes,
+    voteDeltas
+  }), [data, loading, error, refresh, castVote, addComment, sessionVotes, voteDeltas])
 
   return <FeedContext.Provider value={value}>{children}</FeedContext.Provider>
 }

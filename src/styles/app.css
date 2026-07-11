@@ -2,7 +2,7 @@
 .container { width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 20px; }
 
 .app-shell { display: flex; flex-direction: column; min-height: 100%; }
-.app-main { flex: 1; padding-bottom: 48px; }
+.app-main { flex: 1; padding-top: 64px; padding-bottom: 48px; }
 
 .page { padding-top: 28px; }
 .page--narrow { max-width: 680px; }
@@ -30,7 +30,7 @@
 .btn--lg { padding: 13px 24px; font-size: 1rem; }
 
 /* ============ Header ============ */
-.site-header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 40; box-shadow: var(--shadow-sm); }
+.site-header { background: var(--surface); border-bottom: 1px solid var(--border); position: fixed; top: 0; left: 0; right: 0; z-index: 40; box-shadow: var(--shadow-sm); }
 .site-header__inner { display: flex; align-items: center; gap: 20px; height: 64px; }
 
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
@@ -298,7 +298,7 @@
 .ranking-table .col-num { text-align: right; }
 .ranking-table .col-rank { width: 48px; }
 .col-region { color: var(--text-muted); }
-.score-neg { color: var(--danger); font-weight: 700; }
+.score-negative { color: var(--danger); font-weight: 700; }
 .ranking-score { font-weight: 800; }
 .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-weight: 800; font-size: 0.82rem; background: var(--surface-2); color: var(--text-muted); }
 .rank-badge--top { background: #1a1d23; color: #ffd400; }
@@ -396,8 +396,9 @@
     padding: 12px 20px; box-shadow: var(--shadow); display: none;
   }
   .site-nav.is-open { display: flex; }
-  .site-nav__tools { margin-left: 0; padding-left: 0; border-left: none; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 6px; flex-wrap: wrap; }
-  .auth-control { justify-content: space-between; width: 100%; }
+  .site-nav__tools { margin-left: 0; padding-left: 0; border-left: none; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 6px; flex-wrap: wrap; justify-content: space-between; }
+  .site-nav__tools > .plate-search { flex: 1 0 100%; }
+  .auth-control { justify-content: flex-start; width: auto; }
   .auth-control__name { max-width: none; }
   .plate-search--compact .plate-search__input { flex: 1; width: auto; }
   .hero__title { font-size: 1.7rem; }

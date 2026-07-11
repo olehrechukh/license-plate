@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useFeedData } from '../data/useFeedData.js'
 import { useFeed } from '../data/FeedContext.jsx'
@@ -6,21 +5,12 @@ import CategoryBadge from './CategoryBadge.jsx'
 
 export default function CommentCard({ comment, showPlate = true }) {
   const { commentText, formatDate, provinceName, s } = useFeedData()
-  const { castVote, sessionVotes } = useFeed()
-
-  // One vote per comment per session: the vote state comes from the session ledger.
-  // castVote resolves the toggle itself, so we just pass the button direction.
+  const { castVote, sessionVotes, voteDeltas } = useFeed()
   const myVote = sessionVotes[comment.id] || 0
-  // ups/downs come from the server already including any persisted vote from this
-  // session; we add the delta from clicks on this mounted card so counts update
-  // instantly without refetching the paged list.
-  const [delta, setDelta] = useState({ up: 0, down: 0 })
-  const cast = (dir) => {
-    const d = castVote(comment, dir)
-    if (d) setDelta((prev) => ({ up: prev.up + d.dUp, down: prev.down + d.dDown }))
-  }
+  const delta = voteDeltas[comment.id] || { up: 0, down: 0 }
   const ups = comment.ups + delta.up
   const downs = comment.downs + delta.down
+  const cast = (dir) => castVote(comment, dir)
 
   return (
     <article className="comment-card">
@@ -43,12 +33,7 @@ export default function CommentCard({ comment, showPlate = true }) {
       <p className="comment-card__text">{commentText(comment)}</p>
 
       {comment.photo && (
-        <img
-          className="comment-card__photo"
-          src={comment.photo}
-          alt=""
-          loading="lazy"
-        />
+        <img className="comment-card__photo" src={comment.photo} alt="" loading="lazy" />
       )}
 
       <div className="comment-card__foot">

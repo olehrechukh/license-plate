@@ -13,7 +13,7 @@ export default function PlateDetail() {
 
   const plateCode = normalizePlate(plateParam)
   const [record, setRecord] = useState(null)
-  const { rows, count, loading, hasMore, loadMore, loadingMore } = useComments({ plate: plateCode })
+  const { rows, loading, hasMore, loadMore, loadingMore } = useComments({ plate: plateCode })
 
   useEffect(() => {
     let cancelled = false
@@ -28,11 +28,11 @@ export default function PlateDetail() {
         {record && (
           <div className="plate-detail__meta">
             <span className="plate-detail__region">{provinceName(record.province)}</span>
-            <span className={`plate-detail__score ${record.score < 0 ? 'score-neg' : ''}`}>
+            <span className={`plate-detail__score ${record.score < 0 ? 'score-negative' : ''}`}>
               {s('plateDetail.scoreLabel')}: {record.score}
             </span>
             <span className="plate-detail__count">
-              {t('plateDetail.reportedTimes', { count })}
+              {t('plateDetail.reportedTimes', { count: record.comment_count })}
             </span>
           </div>
         )}

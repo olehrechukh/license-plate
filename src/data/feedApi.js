@@ -58,14 +58,16 @@ export async function fetchPlate(code) {
   return data
 }
 
-// Worst-driver leaderboard (top `limit` plates by net score, comments only).
+// Worst-driver leaderboard (top `limit` plates by current-period net score).
 export async function fetchRankings(limit = 10) {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('plate_rankings')
     .select('plate, province, score, comment_count')
     .gt('comment_count', 0)
-    .order('score', { ascending: false })
+    .order('score', { ascending: true })
+    .order('comment_count', { ascending: false })
+    .order('plate', { ascending: true })
     .limit(limit)
   if (error) {
     console.warn('[feed] fetchRankings failed:', error.message || error)

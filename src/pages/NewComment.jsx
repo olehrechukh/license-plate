@@ -87,6 +87,9 @@ export default function NewComment() {
   const normalizedPlate = normalizePlate(form.plate)
   const region = provinceForPlateCode(normalizedPlate)
   const plateError = errors.plate && (!isValidPlate(normalizedPlate) || !region)
+  const plateErrorMessage = plateError
+    ? (isValidPlate(normalizedPlate) ? fields.plate.invalidRegion : fields.plate.invalidFormat)
+    : fields.plate.help
   const descError = errors.description && form.description.trim().length < 20
   const consentError = errors.consent && !form.consent
 
@@ -145,8 +148,10 @@ export default function NewComment() {
             placeholder={fields.plate.placeholder}
             maxLength={MAX_PLATE_LENGTH}
             autoComplete="off"
+            aria-invalid={plateError}
+            aria-describedby="f-plate-help"
           />
-          <span className={`field__help ${plateError ? 'has-error' : ''}`}>{fields.plate.help}</span>
+          <span id="f-plate-help" className={`field__help ${plateError ? 'has-error' : ''}`}>{plateErrorMessage}</span>
           {region && (
             <span className="field__region">
               {s('rankings.colRegion')}: <strong>{provinceName(region)}</strong>
