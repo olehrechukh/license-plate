@@ -387,7 +387,10 @@
   .page-grid__rail { position: static; }
 }
 
-@media (max-width: 760px) {
+/* The full horizontal nav (links + search + language + auth) only fits above
+   ~1180px; below that the auth control overflows the right edge and clips —
+   most visibly on iPads. Collapse into the hamburger menu until it fits. */
+@media (max-width: 1180px) {
   .nav-toggle { display: flex; }
   .site-nav {
     position: absolute; top: 64px; left: 0; right: 0;
@@ -401,5 +404,8 @@
   .auth-control { justify-content: flex-start; width: auto; }
   .auth-control__name { max-width: none; }
   .plate-search--compact .plate-search__input { flex: 1; width: auto; }
+}
+
+@media (max-width: 760px) {
   .hero__title { font-size: 1.7rem; }
 }
