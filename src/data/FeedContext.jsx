@@ -44,11 +44,11 @@ function voteDelta(from, to) {
 // Supabase Storage bucket for user-uploaded comment photos.
 const PHOTO_BUCKET = 'comment-photos'
 
-async function uploadPhoto(file, plate, id) {
+async function uploadPhoto(file, userId, id) {
   if (!file) return null
   if (!supabase) throw new Error('Supabase is not configured.')
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
-  const path = `${plate}/${id}.${ext || 'jpg'}`
+  const path = `${userId}/${id}/photo.${ext || 'jpg'}`
   const { error } = await supabase.storage
     .from(PHOTO_BUCKET)
     .upload(path, file, { upsert: false, contentType: file.type || undefined })
@@ -204,9 +204,10 @@ export function FeedProvider({ children }) {
     const province = provinceForPlate(norm)
     if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
     if (!isValidPlate(norm) || !province) throw new Error('Invalid Ukrainian regional plate.')
+    if (photoFile && !user?.id) throw new Error('You must be signed in to upload a photo.')
 
     const id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `c-${Date.now()}`
-    const photo = await uploadPhoto(photoFile, norm, id)
+    const photo = await uploadPhoto(photoFile, user?.id, id)
     // ignoreDuplicates: existing plates are left untouched (there is no
     // update policy on plates, so the ON CONFLICT UPDATE path would fail).
     const { error: plateError } = await supabase.from('plates').upsert(
@@ -227,7 +228,7 @@ export function FeedProvider({ children }) {
     // detail page the user lands on next fetches its own fresh comment page.
     await refresh()
     return { plate: norm }
-  }, [provinceForPlate, refresh])
+  }, [provinceForPlate, refresh, user])
 
   const value = useMemo(() => ({
     provinces: data?.provinces || [],

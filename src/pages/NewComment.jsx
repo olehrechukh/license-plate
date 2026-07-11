@@ -93,14 +93,14 @@ export default function NewComment() {
   const descError = errors.description && form.description.trim().length < 20
   const consentError = errors.consent && !form.consent
 
-  // `auth.*` / gate keys only exist once supabase/auth.sql has been run; until
+  // `auth.*` / gate keys only exist once the migration-backed auth strings are available; until
   // then the i18n helper echoes the key back, so fall back to a literal.
   const label = (key, uk, en) => {
     const value = s(key)
     return value === key ? (lang === 'uk' ? uk : en) : value
   }
 
-  // Posting a comment requires a signed-in user (enforced by RLS in schema.sql);
+  // Posting a comment requires a signed-in user (enforced by RLS in the migrations);
   // gate the form so the UI matches. While the session is still resolving, hold
   // the space rather than flashing the gate and then the form.
   if (authEnabled && authLoading) {

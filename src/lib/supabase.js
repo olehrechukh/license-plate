@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Reads Vite env vars. The publishable (anon) key is browser-safe — access is
-// governed by Row Level Security policies defined in supabase/schema.sql.
+// governed by Row Level Security policies defined in supabase/migrations/.
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 

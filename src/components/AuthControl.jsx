@@ -31,7 +31,7 @@ export default function AuthControl() {
 
   if (!enabled) return null
 
-  // `auth.*` keys only exist once supabase/auth.sql has been run; until then the
+  // `auth.*` keys only exist once the migration-backed auth strings are available; until then the
   // i18n helper echoes the key back, so fall back to a literal.
   const label = (key, uk, en) => {
     const value = s(`auth.${key}`)

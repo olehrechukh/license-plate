@@ -20,22 +20,21 @@ without a reachable, seeded database it shows a "Could not load data" retry scre
 2. Copy `.env.example` → `.env` and fill in (Settings → API):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_PUBLISHABLE_KEY` (the browser-safe `sb_publishable_…` key)
-3. In the Supabase SQL Editor, run **`supabase/schema.sql`**, then **`supabase/seed.sql`**,
-   then **`supabase/storage.sql`** (creates the `comment-photos` bucket for uploads).
-4. Run **`supabase/auth.sql`** to add the Google sign-in labels to `app_strings`.
-5. In the Supabase Dashboard, enable Google under Auth → Providers and add your local
+3. Apply the migrations in **`supabase/migrations/`** in filename order using the
+   Supabase CLI (`supabase db push`) or the SQL Editor.
+   The migrations create the tables, RLS policies, rankings view, and `comment-photos`
+   Storage bucket.
+4. In the Supabase Dashboard, enable Google under Auth → Providers and add your local
    and production URLs to Auth → URL Configuration.
-6. In Google Cloud, create a Web OAuth client and add the Supabase callback URL shown
+5. In Google Cloud, create a Web OAuth client and add the Supabase callback URL shown
    in the Google provider settings on the Supabase dashboard.
-7. Restart `npm run dev`.
+6. Restart `npm run dev`.
 
 Comment photos upload to the `comment-photos` Storage bucket and are stored as public
 URLs on `comments.photo`. If a photo upload fails, the form reports the error and keeps
 the comment unsubmitted so the user can retry.
 
-Edit content in the database (or in `site content` via SQL) and refresh. To regenerate
-`seed.sql` you need the original `site-feed.json`; it was removed once the data moved to
-the DB, so the database is now the source of truth.
+Edit content directly in the database and refresh; the database is the source of truth.
 
 ## Architecture
 
@@ -69,13 +68,13 @@ and data are ready, then renders the SPA.
 | `comment_vote_counts` (view) | base up/down votes + live user votes |
 | `plate_rankings` (view) | leaderboard, worst score first |
 
-Votes are keyed by an anonymous per-browser id (no login). RLS allows public read plus
-public write on `plates` / `comments` / `votes` for the demo.
+Votes support both anonymous per-browser ids and signed-in users. RLS allows public read;
+plate and comment inserts require authentication, and vote writes go through constrained
+database functions. Comment photo uploads must use the signed-in user's
+`<auth.uid>/<comment-id>/<filename>` path.
 
 ## Scope notes
 
-- Supabase Auth is optional right now — Google sign-in is available in the header,
-  but the site still uses public write policies. Tighten `schema.sql` if you want to
-  require login for comments or votes.
+- Supabase Auth is required for posting comments, registering plates, and uploading photos.
 - Provinces are all 27 Ukrainian regions (24 oblasts + Crimea + Kyiv & Sevastopol).
 - Sample plates/comments are invented, neutral examples.
