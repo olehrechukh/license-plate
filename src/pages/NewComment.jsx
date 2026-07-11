@@ -37,7 +37,6 @@ export default function NewComment() {
   useEffect(() => {
     const suggestedAuthor = user?.user_metadata?.full_name
       || user?.user_metadata?.name
-      || user?.email
       || ''
     if (suggestedAuthor && !form.author) {
       setForm((current) => (current.author ? current : { ...current, author: suggestedAuthor }))
