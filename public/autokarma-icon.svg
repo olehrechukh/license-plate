@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>AutoKarma</title>
+  <rect width="512" height="512" rx="112" fill="#082b4c"/>
+  <path d="M88 207 128 170h256l40 37-25 36v92l-34 37H147l-34-37v-92z" fill="#082b4c" stroke="#fff" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M128 242h256M119 287h274M128 332h256" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round"/>
+  <path d="m88 207-32 24 23 32 37-15M424 207l32 24-23 32-37-15M113 335l-19 32 49 20M399 335l19 32-49 20" fill="#082b4c" stroke="#fff" stroke-width="18" stroke-linejoin="round"/>
+  <circle cx="256" cy="287" r="72" fill="#d6a438" stroke="#fff" stroke-width="18"/>
+  <circle cx="256" cy="287" r="17" fill="#fff"/>
+  <path d="M256 215v40M256 319v40M184 287h40M288 287h40M205 236l29 29M278 309l29 29M307 236l-29 29M234 309l-29 29" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round"/>
+</svg>
