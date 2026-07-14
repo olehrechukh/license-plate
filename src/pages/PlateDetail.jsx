@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n.js'
 import { useFeedData } from '../data/useFeedData.js'
 import { useComments } from '../data/useComments.js'
 import { fetchPlate } from '../data/feedApi.js'
 import InfiniteComments from '../components/InfiniteComments.jsx'
+import { trackEvent } from '../lib/analytics.js'
 
 export default function PlateDetail() {
   const { plate: plateParam } = useParams()
@@ -13,6 +14,7 @@ export default function PlateDetail() {
 
   const plateCode = normalizePlate(plateParam)
   const [record, setRecord] = useState(null)
+  const trackedPlateRef = useRef('')
   const { rows, loading, hasMore, loadMore, loadingMore } = useComments({ plate: plateCode })
 
   useEffect(() => {
@@ -20,6 +22,16 @@ export default function PlateDetail() {
     fetchPlate(plateCode).then((r) => { if (!cancelled) setRecord(r) })
     return () => { cancelled = true }
   }, [plateCode])
+
+  useEffect(() => {
+    if (!record || trackedPlateRef.current === plateCode) return
+
+    trackedPlateRef.current = plateCode
+    trackEvent('plate_view', {
+      region: record.province || 'unknown',
+      has_comments: record.comment_count > 0
+    })
+  }, [plateCode, record])
 
   return (
     <div className="container page">

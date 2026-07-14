@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase, hasSupabase } from '../lib/supabase.js'
+import { trackEvent } from '../lib/analytics.js'
 
 const AuthContext = createContext(null)
 
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (_event === 'SIGNED_IN') trackEvent('sign_in_success', { method: 'google' })
       setSession(nextSession)
       setLoading(false)
     })

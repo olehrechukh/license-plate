@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import GoogleMark from './GoogleMark.jsx'
+import { trackEvent } from '../lib/analytics.js'
 
 export default function AuthControl() {
   const { lang, s } = useI18n()
@@ -59,7 +60,10 @@ export default function AuthControl() {
           className="auth-btn auth-btn--google auth-btn--icon"
           type="button"
           disabled={signingIn}
-          onClick={signInWithGoogle}
+          onClick={() => {
+            trackEvent('sign_in_click', { method: 'google' })
+            signInWithGoogle()
+          }}
           aria-label={signingIn ? signingInLabel : signInLabel}
           title={signingIn ? signingInLabel : signInLabel}
         >

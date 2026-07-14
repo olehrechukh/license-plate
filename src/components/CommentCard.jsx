@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useFeedData } from '../data/useFeedData.js'
 import { useFeed } from '../data/FeedContext.jsx'
 import CategoryBadge from './CategoryBadge.jsx'
+import { trackEvent } from '../lib/analytics.js'
 
 export default function CommentCard({ comment, showPlate = true }) {
   const { commentText, formatDate, provinceName, s } = useFeedData()
@@ -10,7 +11,10 @@ export default function CommentCard({ comment, showPlate = true }) {
   const delta = voteDeltas[comment.id] || { up: 0, down: 0 }
   const ups = comment.ups + delta.up
   const downs = comment.downs + delta.down
-  const cast = (dir) => castVote(comment, dir)
+  const cast = (dir) => {
+    trackEvent('comment_vote', { direction: dir === 1 ? 'up' : 'down' })
+    castVote(comment, dir)
+  }
 
   return (
     <article className="comment-card">

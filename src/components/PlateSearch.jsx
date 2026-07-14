@@ -2,6 +2,7 @@ import { useState, useId } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n.js'
 import { isValidPlate, normalizePlate } from '../data/useFeedData.js'
+import { trackEvent } from '../lib/analytics.js'
 
 export default function PlateSearch({ compact = false, onSubmitSuccess }) {
   const { s } = useI18n()
@@ -14,9 +15,15 @@ export default function PlateSearch({ compact = false, onSubmitSuccess }) {
     e.preventDefault()
     const plate = normalizePlate(value)
     if (!isValidPlate(plate)) {
+      trackEvent('plate_search_error', {
+        search_location: compact ? 'compact_search' : 'home_search'
+      })
       setInvalid(true)
       return
     }
+    trackEvent('plate_search', {
+      search_location: compact ? 'compact_search' : 'home_search'
+    })
     navigate(`/plate/${encodeURIComponent(plate)}`)
     setValue('')
     setInvalid(false)

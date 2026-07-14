@@ -6,6 +6,7 @@ import { useFeedData, isValidPlate, normalizePlate } from '../data/useFeedData.j
 import { provinceForPlateCode } from '../data/plateRegions.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import GoogleMark from '../components/GoogleMark.jsx'
+import { trackEvent } from '../lib/analytics.js'
 
 const MAX_PLATE_LENGTH = 10
 const MAX_DESCRIPTION_LENGTH = 1000
@@ -42,6 +43,11 @@ export default function NewComment() {
       setForm((current) => (current.author ? current : { ...current, author: suggestedAuthor }))
     }
   }, [user, form.author])
+  useEffect(() => {
+    trackEvent('comment_form_opened', {
+      source: searchParams.get('plate') ? 'plate_detail' : 'navigation'
+    })
+  }, [searchParams])
 
   const update = (key) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -61,7 +67,10 @@ export default function NewComment() {
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!validate()) return
+    if (!validate()) {
+      trackEvent('comment_validation_error')
+      return
+    }
     setSaving(true)
     setSubmitError(false)
     try {
@@ -72,8 +81,14 @@ export default function NewComment() {
         author: form.author.trim(),
         photoFile
       })
+      trackEvent('comment_published', {
+        category: form.category,
+        has_photo: Boolean(photoFile),
+        region: provinceForPlateCode(normalizePlate(form.plate)) || 'unknown'
+      })
       navigate(`/plate/${encodeURIComponent(result.plate)}`)
     } catch (error) {
+      trackEvent('comment_publish_error')
       console.warn('[comment] submit failed:', error.message || error)
       setSubmitError(true)
     } finally {
