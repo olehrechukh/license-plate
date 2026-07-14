@@ -211,7 +211,11 @@ export default function NewComment() {
             className="field__input"
             type="file"
             accept="image/*"
-            onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+            onChange={(e) => {
+              const file = e.target.files?.[0] || null
+              setPhotoFile(file)
+              if (file) trackEvent('photo_attached', { file_type: file.type || 'unknown' })
+            }}
           />
           <span className="field__help">{fields.photo.help}</span>
           {photoFile && (

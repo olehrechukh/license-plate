@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import CommentCard from './CommentCard.jsx'
+import { trackEvent } from '../lib/analytics.js'
 
 /**
  * Renders a comment list and, when more pages exist, an off-screen sentinel that
@@ -14,12 +15,16 @@ export default function InfiniteComments({ comments, hasMore, loadMore, loadingM
     const el = sentinel.current
     if (!el) return
     const obs = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) loadMore() },
+      (entries) => {
+        if (!entries[0].isIntersecting || loadingMore) return
+        trackEvent('comments_load_more')
+        loadMore()
+      },
       { rootMargin: '600px' }
     )
     obs.observe(el)
     return () => obs.disconnect()
-  }, [hasMore, loadMore])
+  }, [hasMore, loadMore, loadingMore])
 
   return (
     <>

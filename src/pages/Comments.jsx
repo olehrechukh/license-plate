@@ -2,11 +2,18 @@ import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n.js'
 import { useComments } from '../data/useComments.js'
 import InfiniteComments from '../components/InfiniteComments.jsx'
+import { trackEvent } from '../lib/analytics.js'
 
 export default function Comments() {
   const { s } = useI18n()
   const [sort, setSort] = useState('newest')
   const { rows, loading, hasMore, loadMore, loadingMore } = useComments({ sort })
+
+  const changeSort = (nextSort) => {
+    if (sort === nextSort) return
+    trackEvent('comments_sort_change', { sort: nextSort })
+    setSort(nextSort)
+  }
 
   return (
     <div className="container page">
@@ -15,13 +22,13 @@ export default function Comments() {
         <div className="sort-toggle" role="group" aria-label="sort">
           <button
             className={`sort-toggle__btn ${sort === 'newest' ? 'is-active' : ''}`}
-            onClick={() => setSort('newest')}
+            onClick={() => changeSort('newest')}
           >
             {s('comments.sortNewest')}
           </button>
           <button
             className={`sort-toggle__btn ${sort === 'top' ? 'is-active' : ''}`}
-            onClick={() => setSort('top')}
+            onClick={() => changeSort('top')}
           >
             {s('comments.sortTopVoted')}
           </button>
