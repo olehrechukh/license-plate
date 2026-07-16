@@ -71,6 +71,7 @@ export function FeedProvider({ children }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [deletedCommentIds, setDeletedCommentIds] = useState(() => new Set())
   // { [commentId]: -1 | 1 } — one entry per voted comment this session.
   const [sessionVotes, setSessionVotes] = useState(() => readSessionVotes(storageKey))
   const [voteDeltas, setVoteDeltas] = useState({})
@@ -199,12 +200,13 @@ export function FeedProvider({ children }) {
     })
     return { dUp: transition.up, dDown: transition.down }
   }, [])
-  const addComment = useCallback(async ({ plate, category, description, author, photoFile }) => {
+  const addComment = useCallback(async ({ plate, category, description, sourceUrl, author, photoFile }) => {
     const norm = normalizePlate(plate)
     const province = provinceForPlate(norm)
     if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
     if (!isValidPlate(norm) || !province) throw new Error('Invalid Ukrainian regional plate.')
     if (photoFile && !user?.id) throw new Error('You must be signed in to upload a photo.')
+    if (sourceUrl && user?.app_metadata?.role !== 'admin') throw new Error('Only admins can set an import source.')
 
     const id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `c-${Date.now()}`
     const photo = await uploadPhoto(photoFile, user?.id, id)
@@ -220,7 +222,8 @@ export function FeedProvider({ children }) {
     // forged timestamps, and client clocks can be skewed.
     const { error: commentError } = await supabase.from('comments').insert({
       id, plate: norm, author: author || null, category,
-      text_uk: description, text_en: description, photo, upvotes: 0, downvotes: 0
+      text_uk: description, text_en: description, photo, source_url: sourceUrl || null,
+      upvotes: 0, downvotes: 0
     })
     if (commentError) throw new Error(commentError.message || 'Could not save the comment.')
 
@@ -229,6 +232,23 @@ export function FeedProvider({ children }) {
     await refresh()
     return { plate: norm }
   }, [provinceForPlate, refresh, user])
+
+  const deleteComment = useCallback(async (commentId) => {
+    if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
+    if (user?.app_metadata?.role !== 'admin') throw new Error('Only admins can remove comments.')
+
+    const { error: deleteError } = await supabase.rpc('soft_delete_comment', {
+      p_comment_id: commentId
+    })
+    if (deleteError) throw new Error(deleteError.message || 'Could not remove the comment.')
+
+    setDeletedCommentIds((current) => {
+      const next = new Set(current)
+      next.add(commentId)
+      return next
+    })
+    await refresh()
+  }, [refresh, user])
 
   const value = useMemo(() => ({
     provinces: data?.provinces || [],
@@ -239,9 +259,11 @@ export function FeedProvider({ children }) {
     refresh,
     castVote,
     addComment,
+    deleteComment,
+    deletedCommentIds,
     sessionVotes,
     voteDeltas
-  }), [data, loading, error, refresh, castVote, addComment, sessionVotes, voteDeltas])
+  }), [data, loading, error, refresh, castVote, addComment, deleteComment, deletedCommentIds, sessionVotes, voteDeltas])
 
   return <FeedContext.Provider value={value}>{children}</FeedContext.Provider>
 }

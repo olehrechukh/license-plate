@@ -1,12 +1,26 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useFeedData } from '../data/useFeedData.js'
 import { useFeed } from '../data/FeedContext.jsx'
+import { useAuth } from '../auth/AuthContext.jsx'
 import CategoryBadge from './CategoryBadge.jsx'
 import { trackEvent } from '../lib/analytics.js'
 
+function sourceHost(sourceUrl) {
+  try {
+    return new URL(sourceUrl).hostname.replace(/^www\./, '')
+  } catch {
+    return sourceUrl
+  }
+}
+
 export default function CommentCard({ comment, showPlate = true }) {
   const { commentText, formatDate, provinceName, s } = useFeedData()
-  const { castVote, sessionVotes, voteDeltas } = useFeed()
+  const { user } = useAuth()
+  const { castVote, deleteComment, deletedCommentIds, sessionVotes, voteDeltas } = useFeed()
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(false)
+  const isAdmin = user?.app_metadata?.role === 'admin'
   const myVote = sessionVotes[comment.id] || 0
   const delta = voteDeltas[comment.id] || { up: 0, down: 0 }
   const ups = comment.ups + delta.up
@@ -15,6 +29,21 @@ export default function CommentCard({ comment, showPlate = true }) {
     trackEvent('comment_vote', { direction: dir === 1 ? 'up' : 'down' })
     castVote(comment, dir)
   }
+  const remove = async () => {
+    if (!window.confirm(s('comments.deleteConfirm'))) return
+    setDeleting(true)
+    setDeleteError(false)
+    try {
+      await deleteComment(comment.id)
+      trackEvent('comment_soft_deleted')
+    } catch (error) {
+      console.warn('[comment] delete failed:', error.message || error)
+      setDeleteError(true)
+      setDeleting(false)
+    }
+  }
+
+  if (deletedCommentIds.has(comment.id)) return null
 
   return (
     <article className="comment-card">
@@ -40,9 +69,34 @@ export default function CommentCard({ comment, showPlate = true }) {
         <img className="comment-card__photo" src={comment.photo} alt="" loading="lazy" />
       )}
 
+      {comment.sourceUrl && (
+        <a
+          className="comment-card__source"
+          href={comment.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {s('comments.importedFrom')} {sourceHost(comment.sourceUrl)} ↗
+        </a>
+      )}
+
+      {deleteError && (
+        <p className="comment-card__delete-error" role="alert">{s('comments.deleteFailed')}</p>
+      )}
+
       <div className="comment-card__foot">
         <span className="comment-card__author">@{comment.author}</span>
         <span className="comment-card__date">{formatDate(comment.createdAt)}</span>
+        {isAdmin && (
+          <button
+            type="button"
+            className="comment-card__delete"
+            disabled={deleting}
+            onClick={remove}
+          >
+            {s(deleting ? 'comments.deleting' : 'comments.delete')}
+          </button>
+        )}
         <div className="votebar" role="group" aria-label={s('vote.label')}>
           <span className="votecount votecount--up">{ups}</span>
           <button

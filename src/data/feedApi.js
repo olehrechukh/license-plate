@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase.js'
 
 // Columns selected from the comments_feed view (region + live vote counts folded
 // in), shaped into the UI comment object the cards/pages expect.
-const COMMENT_COLS = 'id, plate, province, author, category, text_uk, text_en, photo, created_at, ups, downs'
+const COMMENT_COLS = 'id, plate, province, author, category, text_uk, text_en, photo, source_url, created_at, ups, downs'
 
 export function toComment(row) {
   return {
@@ -15,7 +15,8 @@ export function toComment(row) {
     ups: row.ups,
     downs: row.downs,
     text: { uk: row.text_uk, en: row.text_en },
-    photo: row.photo
+    photo: row.photo,
+    sourceUrl: row.source_url
   }
 }
 

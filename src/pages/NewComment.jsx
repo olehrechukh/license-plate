@@ -11,6 +11,17 @@ import { trackEvent } from '../lib/analytics.js'
 const MAX_PLATE_LENGTH = 10
 const MAX_DESCRIPTION_LENGTH = 1000
 const MAX_AUTHOR_LENGTH = 50
+const MAX_SOURCE_URL_LENGTH = 2048
+
+function isValidSourceUrl(value) {
+  if (!value.trim()) return true
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
 
 export default function NewComment() {
   const { lang, s, strings } = useI18n()
@@ -18,6 +29,7 @@ export default function NewComment() {
   const { addComment } = useFeed()
   const { provinceName } = useFeedData()
   const { enabled: authEnabled, loading: authLoading, user, signingIn, signInWithGoogle } = useAuth()
+  const isAdmin = user?.app_metadata?.role === 'admin'
   const [searchParams] = useSearchParams()
   const fields = strings.newComment.fields
   const categoryOptions = fields.category.options
@@ -27,6 +39,7 @@ export default function NewComment() {
     plate: normalizePlate(searchParams.get('plate') || ''),
     category: 'dangerous-driving',
     description: '',
+    sourceUrl: '',
     author: '',
     consent: false
   })
@@ -60,6 +73,7 @@ export default function NewComment() {
     const normalizedPlate = normalizePlate(form.plate)
     if (!isValidPlate(normalizedPlate) || !provinceForPlateCode(normalizedPlate)) next.plate = true
     if (form.description.trim().length < 20) next.description = true
+    if (isAdmin && !isValidSourceUrl(form.sourceUrl)) next.sourceUrl = true
     if (!form.consent) next.consent = true
     setErrors(next)
     return Object.keys(next).length === 0
@@ -78,6 +92,7 @@ export default function NewComment() {
         plate: form.plate,
         category: form.category,
         description: form.description.trim(),
+        sourceUrl: isAdmin ? (form.sourceUrl.trim() || null) : null,
         author: form.author.trim(),
         photoFile
       })
@@ -105,6 +120,7 @@ export default function NewComment() {
     ? (isValidPlate(normalizedPlate) ? fields.plate.invalidRegion : fields.plate.invalidFormat)
     : fields.plate.help
   const descError = errors.description && form.description.trim().length < 20
+  const sourceUrlError = errors.sourceUrl && !isValidSourceUrl(form.sourceUrl)
   const consentError = errors.consent && !form.consent
 
   // `auth.*` / gate keys only exist once the migration-backed auth strings are available; until
@@ -211,6 +227,7 @@ export default function NewComment() {
             className="field__input"
             type="file"
             accept="image/*"
+            multiple={false}
             onChange={(e) => {
               const file = e.target.files?.[0] || null
               setPhotoFile(file)
@@ -222,6 +239,28 @@ export default function NewComment() {
             <img className="photo-preview" src={URL.createObjectURL(photoFile)} alt="" />
           )}
         </div>
+
+        {isAdmin && (
+          <div className="field">
+            <label className="field__label" htmlFor="f-source-url">{fields.sourceUrl.label}</label>
+            <input
+              id="f-source-url"
+              className={`field__input ${sourceUrlError ? 'has-error' : ''}`}
+              type="url"
+              inputMode="url"
+              value={form.sourceUrl}
+              onChange={update('sourceUrl')}
+              placeholder={fields.sourceUrl.placeholder}
+              maxLength={MAX_SOURCE_URL_LENGTH}
+              autoComplete="url"
+              aria-invalid={sourceUrlError}
+              aria-describedby="f-source-url-help"
+            />
+            <span id="f-source-url-help" className={`field__help ${sourceUrlError ? 'has-error' : ''}`}>
+              {sourceUrlError ? fields.sourceUrl.invalid : fields.sourceUrl.help}
+            </span>
+          </div>
+        )}
 
         <div className="field">
           <label className="field__label" htmlFor="f-author">{fields.author.label}</label>
