@@ -230,7 +230,7 @@
 .comment-card__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .comment-card__region { color: var(--text-faint); font-size: 0.82rem; margin-left: auto; }
 .comment-card__text { margin: 0 0 12px; }
-.comment-card__photo { width: 100%; max-height: 280px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 12px; }
+.comment-card__photo { width: 100%; max-height: 70vh; object-fit: contain; background: #fff; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 12px; }
 .comment-card__source { display: inline-block; margin: 0 0 12px; color: var(--accent); font-size: 0.82rem; font-weight: 600; overflow-wrap: anywhere; }
 .comment-card__source:hover { text-decoration: underline; }
 .comment-card__delete-error { margin: 0 0 12px; color: var(--danger); font-size: 0.82rem; font-weight: 600; }
