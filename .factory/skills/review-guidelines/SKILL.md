@@ -25,7 +25,7 @@ are out of scope unless the diff makes them worse.
 
 - Any violation of `AGENTS.md` → "Implementation rules" → **Security and database**.
 - Any violation of the frontend security rules in `AGENTS.md` → "Implementation rules" →
-  **Frontend**: `dangerouslySetInnerHTML`, non-`http(s)` user URLs, PII in `trackEvent()`.
+  **Frontend**: non-`http(s)` user URLs, PII in `trackEvent()`.
 - A migration that breaks a check from `docs/agents/database.md` → "Writing a new migration",
   "RLS policies (current)" or "Votes" (vote privacy).
 
@@ -33,11 +33,14 @@ are out of scope unless the diff makes them worse.
 
 - Contracts in `docs/agents/database.md`: view columns, RPC signatures, migration process.
 - Domain rules in `docs/agents/domain.md`: plate validation, category key sync, scoring.
-- Data-flow rules in `AGENTS.md` → "Implementation rules" → **Frontend**: loading/empty/error
-  states, stale-effect handling, stable paging, optimistic rollback, CSP for new origins.
+- Data-flow rules in `AGENTS.md` → "Implementation rules" → **Frontend** (loading/empty/error
+  states, CSP for new origins) and in `docs/agents/code-style.md` → "Hooks and state" and
+  "Async and errors" (stale effects, stable paging, optimistic rollback).
 
 ## P2 — project rules
 
+- Code style in `docs/agents/code-style.md` that lint does not enforce (lint-enforced rules are
+  out of scope — see "Do not flag").
 - Everything else in `AGENTS.md` → "Implementation rules" (scope, i18n, data layer, responsive,
   dependencies) and `karpathy-guidelines` (KISS).
 - Owner file not updated when the change affects what it describes (`AGENTS.md` → "Keeping the
@@ -45,7 +48,7 @@ are out of scope unless the diff makes them worse.
 
 ## Do not flag
 
-- Formatting and lint issues — CI runs `npm run check`.
+- Formatting and anything marked **(lint)** in `docs/agents/code-style.md` — CI runs `npm run check`.
 - Advice that `AGENTS.md` → "Agent skills" says does not apply here (Next.js, Server
   Components, React 19 APIs).
 - Missing unit tests — there is no test runner.

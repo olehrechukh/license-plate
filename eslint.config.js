@@ -24,7 +24,27 @@ export default [
       ...reactHooks.configs.recommended.rules,
       'react/prop-types': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+
+      // House style — documented in docs/agents/code-style.md (the owner of these conventions).
+      'react/function-component-definition': [
+        'error',
+        { namedComponents: 'function-declaration', unnamedComponents: 'arrow-function' }
+      ],
+      'react/jsx-filename-extension': ['error', { extensions: ['.jsx'], allow: 'as-needed' }],
+      'react/jsx-pascal-case': 'error',
+      'react/no-array-index-key': 'error',
+      'react/no-danger': 'error',
+      'react/jsx-no-useless-fragment': 'error',
+      'react/jsx-boolean-value': 'error',
+      'react/jsx-curly-brace-presence': 'error',
+      camelcase: ['error', { properties: 'never', ignoreDestructuring: true }],
+      eqeqeq: ['error', 'smart'],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'object-shorthand': 'error',
+      'prefer-template': 'error'
     }
   },
   {

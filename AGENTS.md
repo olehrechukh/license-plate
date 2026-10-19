@@ -12,17 +12,18 @@ owner instead of restating it. When you add or change information, edit the owne
 it; if you find the same fact in two places, keep it in the owner and replace the copy with a
 link.
 
-| Owner                                                        | Owns                                                                                                  |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `AGENTS.md` (this file)                                      | Working rules, commands, verification, git workflow, how skills apply                                 |
-| [`docs/agents/architecture.md`](docs/agents/architecture.md) | Stack, source layout, providers, routes, components, data flow, i18n, styling, storage keys           |
-| [`docs/agents/database.md`](docs/agents/database.md)         | Tables, views, RLS, RPCs, storage bucket, migration history, admin role, migration checklist          |
-| [`docs/agents/domain.md`](docs/agents/domain.md)             | Plate format and regions, categories, posting, voting, scoring, moderation                            |
-| [`docs/agents/operations.md`](docs/agents/operations.md)     | Env vars, local and hosted setup, deploy, CSP, CI, analytics events                                   |
-| [`docs/agents/known-issues.md`](docs/agents/known-issues.md) | Known bugs, tech debt, stale code comments — check before "fixing" something                          |
-| [`.claude/skills/README.md`](.claude/skills/README.md)       | Which skills exist, their sources and licenses, how they are shared with Factory (`.factory/skills/`) |
-| `.factory/skills/review-guidelines/SKILL.md`                 | Review priorities (P0–P3): maps the rules owned elsewhere to severities; contains no rules of its own |
-| `README.md`                                                  | Human quick start only; links here                                                                    |
+| Owner                                                        | Owns                                                                                                     |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md` (this file)                                      | Working rules, commands, verification, git workflow, how skills apply                                    |
+| [`docs/agents/architecture.md`](docs/agents/architecture.md) | Stack, source layout, providers, routes, components, data flow, i18n, styling, storage keys              |
+| [`docs/agents/database.md`](docs/agents/database.md)         | Tables, views, RLS, RPCs, storage bucket, migration history, admin role, migration checklist             |
+| [`docs/agents/code-style.md`](docs/agents/code-style.md)     | How JS/JSX is written: files, exports, naming, components, hooks, errors, comments (lint-enforced parts) |
+| [`docs/agents/domain.md`](docs/agents/domain.md)             | Plate format and regions, categories, posting, voting, scoring, moderation                               |
+| [`docs/agents/operations.md`](docs/agents/operations.md)     | Env vars, local and hosted setup, deploy, CSP, CI, analytics events                                      |
+| [`docs/agents/known-issues.md`](docs/agents/known-issues.md) | Known bugs, tech debt, stale code comments — check before "fixing" something                             |
+| [`.claude/skills/README.md`](.claude/skills/README.md)       | Which skills exist, their sources and licenses, how they are shared with Factory (`.factory/skills/`)    |
+| `.factory/skills/review-guidelines/SKILL.md`                 | Review priorities (P0–P3): maps the rules owned elsewhere to severities; contains no rules of its own    |
+| `README.md`                                                  | Human quick start only; links here                                                                       |
 
 ## Project
 
@@ -46,8 +47,8 @@ Running the app needs Supabase env vars — see [operations.md](docs/agents/oper
 
 General:
 
-- Follow existing React and CSS patterns before introducing abstractions: function components and
-  hooks, no new state libraries, plain CSS per [architecture.md](docs/agents/architecture.md#styling-srcstyles).
+- Write code per [code-style.md](docs/agents/code-style.md) and CSS per
+  [architecture.md](docs/agents/architecture.md#styling-srcstyles); no new state libraries.
 - Keep changes scoped to the request; no unrelated refactors or reformatting.
 - No new dependencies without the owner's approval.
 - Do not edit `dist/`; do not commit `.env*` files or secrets.
@@ -60,13 +61,9 @@ Frontend:
   lists; no ad-hoc `supabase.from(...)` calls in components
   ([data layer](docs/agents/architecture.md#data-layer-srcdata)).
 - Database-backed UI handles loading, empty and error states.
-- Effects that fetch must ignore stale results (the `cancelled` flag pattern in `src/pages/`).
-- Paged queries keep a stable tiebreaker (`.order('id')`).
-- Optimistic updates roll back on failure (as `castVote` does).
 - Plate input and categories follow [domain.md](docs/agents/domain.md); keep every place it lists
   in sync.
-- Never render user content with `dangerouslySetInnerHTML`; user-supplied URLs must be `http(s)`
-  only.
+- User-supplied URLs must be `http(s)` only.
 - `trackEvent()` params never contain PII (emails, names, comment text).
 - A new third-party origin needs a CSP update ([operations.md](docs/agents/operations.md#deployment-vercel)).
 - Keep the mobile navigation and search form working at the `760px` breakpoint.
