@@ -10,21 +10,13 @@ Defined in `.env` (copy from `.env.example`; `.env` and `.env.*` are gitignored 
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | browser-safe `sb_publishable_…` (or legacy anon) key |
 
 Both are inlined into the bundle at build time by Vite, so they must also be set in the
-Vercel project settings. Never add a service-role/secret key to any `VITE_*` variable.
+Vercel project settings.
 Without them `supabase` is `null`, `hasSupabase` is `false`, auth is disabled and
 `AppGate` shows the error screen.
 
 ## Local development
 
-```bash
-npm install
-npm run dev          # http://localhost:5173 (strictly `vite`)
-npm run build        # dist/
-npm run format       # Prettier --write
-npm run lint         # ESLint
-npm run check        # format:check + lint + build (same as CI)
-npm run preview
-```
+Commands are listed in [`AGENTS.md`](../../AGENTS.md#commands).
 
 `.claude/launch.json` defines two launch configs: `dev` (5173) and `dev-preview`
 (`npm run dev -- --port 5199 --strictPort`).
@@ -87,9 +79,12 @@ Current events:
 
 Vercel Speed Insights is injected in `src/main.jsx`.
 
-## Git
+## CI
 
-- Remote: `https://github.com/olehrechukh/license-plate`, default branch `main`.
-- Author identity used by the owner: `olehrechukh`.
-- CI: `.github/workflows/ci.yml` runs `npm ci`, `format:check`, `lint`, `build` (Node 22) on
-  every pull request and push to `main`. No pre-commit hooks, no tests.
+`.github/workflows/ci.yml` runs `npm ci` and `npm run format:check`, `lint`, `build` (Node 22) on
+every pull request and push to `main`. No pre-commit hooks, no tests.
+
+## Repository
+
+Remote `https://github.com/olehrechukh/license-plate`, default branch `main`; the owner commits as
+`olehrechukh`. Git rules: [`AGENTS.md`](../../AGENTS.md#git).

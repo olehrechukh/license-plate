@@ -1,5 +1,30 @@
 # Architecture
 
+## Stack
+
+- Frontend: React 18 + Vite 5 SPA, React Router 6, plain CSS (no UI framework, no TypeScript).
+- Backend: Supabase only (Postgres + RLS, Auth with Google, Storage); no custom server.
+- Hosting: Vercel static SPA ([operations.md](operations.md#deployment-vercel)).
+- Analytics: GA4 + Vercel Speed Insights ([operations.md](operations.md#analytics)).
+- Languages: Ukrainian (`uk`, default) and English (`en`).
+
+## Source layout
+
+| Path                                  | Contents                                                                                                                                                            |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/main.jsx`                        | Bootstraps providers (see Boot sequence)                                                                                                                            |
+| `src/App.jsx`                         | Route table                                                                                                                                                         |
+| `src/pages/`                          | Route-level screens                                                                                                                                                 |
+| `src/components/`                     | Reusable UI components                                                                                                                                              |
+| `src/data/`                           | Supabase access (`feedApi.js`), global state (`FeedContext.jsx`), paged comments (`useComments.js`), selectors (`useFeedData.js`), region table (`plateRegions.js`) |
+| `src/auth/`                           | Supabase Auth session and Google sign-in                                                                                                                            |
+| `src/i18n/`                           | Bundled strings and config (`strings.js`), language state, `useI18n()`                                                                                              |
+| `src/lib/`                            | Supabase client and anonymous voter id (`supabase.js`), GA4 wrapper (`analytics.js`)                                                                                |
+| `src/styles/`                         | `theme.css` tokens, `app.css` component styles                                                                                                                      |
+| `supabase/`                           | Migrations ([database.md](database.md)) and CLI config                                                                                                              |
+| `public/`                             | Static assets                                                                                                                                                       |
+| `.claude/skills/`, `.factory/skills/` | Agent skills ([README](../../.claude/skills/README.md))                                                                                                             |
+
 ## Boot sequence
 
 `index.html` loads GA4 (`gtag`, id `G-JYR5WCMBJ0`) and `src/main.jsx`, which calls

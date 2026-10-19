@@ -103,10 +103,13 @@ The user must sign out/in (or refresh the token) for the claim to appear.
 
 ## Writing a new migration
 
-1. New file `supabase/migrations/<UTC timestamp>_<snake_description>.sql`.
+1. New file `supabase/migrations/<UTC timestamp>_<snake_description>.sql`; never edit an
+   already-applied migration. There is no `schema.sql` or `seed.sql`.
 2. If you change `insert comments`, copy the **full** current policy from
    `20260716130000_soft_delete_comments.sql` and edit it — partial redefinitions drop checks.
 3. New views/aggregates over `comments` must filter `deleted_at is null`.
 4. `supabase/config.toml` does not auto-expose new tables; add explicit `grant`s for
    `anon` / `authenticated` where the client needs access, plus RLS.
 5. Update `docs/agents/database.md` and the client (`feedApi.js` / `FeedContext.jsx`) together.
+6. Apply it to the hosted database manually before deploying dependent client code
+   ([operations.md](operations.md#deployment-vercel)).

@@ -5,10 +5,6 @@ task calls for it, and remove them from this list when fixed.
 
 ## Stale documentation / comments (code is correct, text is not)
 
-- `README.md` still says UI strings/config come from DB tables `app_strings` / `app_config`
-  and lists them in its database table. They are bundled in `src/i18n/strings.js` since
-  commit `47774c0`; those tables do not exist in the migrations. README also mentions
-  "sample plates/comments" — there is no seed data besides provinces.
 - `src/lib/supabase.js`: comment says the app "silently falls back to the static feed"
   when env vars are missing — there is no static feed; `AppGate` shows an error screen.
 - `vite.config.js`: comment "The feed lives at the project root and is imported at build

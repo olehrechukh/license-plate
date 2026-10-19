@@ -51,6 +51,8 @@ The DB only enforces `char_length(category) <= 50`.
 - Admins additionally see a "Source link" field (`source_url`) to attribute content
   imported from another site (e.g. Facebook); cards then show "Imported from <host> ↗".
 - Rate limits (DB): 5 comments and 10 photo uploads per user per rolling hour.
+- If the photo upload or insert fails, the form shows an error and keeps the input so the user
+  can retry.
 - After success the user is navigated to `/plate/<plate>`.
 
 ## Voting
