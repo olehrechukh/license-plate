@@ -1,57 +1,113 @@
 # Agent Instructions
 
+This file is the entry point for any LLM/coding agent working in this repository
+(Claude Code reads it through `CLAUDE.md`; Codex, Cursor and others read it directly).
+Read this file fully, then open the topic files under `docs/agents/` that match your task.
+
 ## Project
 
-License Plate is a React + Vite single-page application backed by Supabase.
-The database is the source of truth for site content, provinces, plates, comments,
-votes, rankings, and UI strings.
+**AutoKarma** (АвтоКарма, repo `olehrechukh/license-plate`) is a Ukrainian
+"rate drivers by license plate" site. Users search a plate, read reports about the
+driver, post their own report (Google sign-in required), and vote on reports. A monthly
+leaderboard ranks the worst plates.
+
+- Frontend: React 18 + Vite 5 SPA, React Router 6, plain CSS (no UI framework, no TypeScript).
+- Backend: Supabase only (Postgres + RLS, Auth with Google, Storage). No custom server.
+- Hosting: Vercel (static SPA, `vercel.json` rewrites + security headers). Pushes to `main` deploy.
+- Analytics: GA4 (`gtag` in `index.html`, events via `src/lib/analytics.js`) + Vercel Speed Insights.
+- Languages: Ukrainian (`uk`, default) and English (`en`).
+
+## Knowledge base (read the one you need)
+
+| File | What's in it |
+|---|---|
+| [`docs/agents/architecture.md`](docs/agents/architecture.md) | Provider tree, routes, every page/component, data flow, state, i18n, styling |
+| [`docs/agents/database.md`](docs/agents/database.md) | Tables, views, RLS policies, RPCs, triggers, storage bucket, migration history |
+| [`docs/agents/domain.md`](docs/agents/domain.md) | Plate format + normalization, region codes, categories, scoring, voting, admin features |
+| [`docs/agents/operations.md`](docs/agents/operations.md) | Env vars, local dev, Supabase/Google setup, admin role, deploy, CSP, analytics events |
+| [`docs/agents/known-issues.md`](docs/agents/known-issues.md) | Stale comments, tech debt, gotchas and open ideas — check before "fixing" something |
+
+`README.md` is the human-facing setup guide.
 
 ## Stack and Commands
 
 - Install dependencies with `npm install`.
-- Start the development server with `npm run dev`.
-- Build for production with `npm run build`.
+- Start the development server with `npm run dev` (http://localhost:5173).
+- Build for production with `npm run build` (output in `dist/`).
 - Preview the production build with `npm run preview`.
-- There is currently no test runner configured; always run `npm run build` after code changes.
+- There is no test runner and no linter configured; always run `npm run build` after code changes.
+- The app needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env`; without them
+  it builds fine but renders the "Could not load data" screen at runtime.
 
 ## Source Layout
 
-- `src/pages/` contains route-level screens.
-- `src/components/` contains reusable UI components.
-- `src/data/` contains Supabase-backed data access and feed state.
-- `src/i18n/` contains language state and translation helpers.
-- `src/styles/` contains the theme and application styles.
-- `supabase/` contains schema, seed, storage, and maintenance SQL/scripts.
+- `src/main.jsx` — bootstraps providers (`BrowserRouter > LanguageProvider > AuthProvider > FeedProvider > AppGate > App`).
+- `src/App.jsx` — route table.
+- `src/pages/` — route-level screens.
+- `src/components/` — reusable UI components.
+- `src/data/` — Supabase data access (`feedApi.js`), global feed state (`FeedContext.jsx`),
+  paged comments hook (`useComments.js`), selectors (`useFeedData.js`), plate region table (`plateRegions.js`).
+- `src/auth/AuthContext.jsx` — Supabase Auth session + Google sign-in.
+- `src/i18n/` — bundled UI strings/config (`strings.js`), language state, `useI18n()` helpers.
+- `src/lib/` — Supabase client + anonymous voter id (`supabase.js`), GA4 wrapper (`analytics.js`).
+- `src/styles/` — `theme.css` (design tokens) and `app.css` (all component styles, BEM-ish).
+- `supabase/migrations/` — the authoritative database schema (apply in filename order).
+- `supabase/config.toml` — Supabase CLI local config.
+- `public/` — static assets (site icon).
 
 ## Implementation Rules
 
 - Follow the existing React and CSS patterns before introducing abstractions.
+  Function components + hooks, no class components, no new state libraries.
 - Keep changes scoped to the requested behavior; avoid unrelated refactors.
-- Use `useI18n()` and database-backed strings for user-facing text.
-- Use `useFeed()` or `useFeedData()` for feed and Supabase state rather than duplicating queries.
-- Preserve responsive behavior, especially the mobile navigation and search form.
-- Do not put secrets in source control. Keep local credentials in `.env` or `.env.local`.
+- User-facing text goes through `useI18n()` (`s('path')`, `t('path', params)`, `loc({uk, en})`)
+  and must be added to **both** `uk` and `en` in `src/i18n/strings.js`. UI strings are bundled
+  in the frontend, not stored in the database.
+- Use `useFeed()` / `useFeedData()` for global feed state and `useComments()` / `feedApi.js`
+  for comment lists rather than writing new ad-hoc Supabase queries in components.
+- Plate input must go through `normalizePlate()` and be checked with `isValidPlate()` (and
+  `provinceForPlateCode()` when a region is required). Keep client rules in sync with the DB regex `^[A-Z0-9]{3,10}$`.
+- Admin-only UI is gated with `user?.app_metadata?.role === 'admin'`, but the real
+  enforcement must live in RLS/RPCs — never rely on the client check alone.
+- Fire GA4 events with `trackEvent(name, params)`; never send PII (emails, names, comment text).
+- Preserve responsive behavior, especially the mobile navigation (`max-width: 760px`) and search form.
+- Do not put secrets in source control. Keep local credentials in `.env` or `.env.local`
+  (both gitignored). Only the publishable/anon key may ship to the browser.
 - Do not edit generated `dist/` output; it is rebuilt by Vite.
 
 ## Supabase
 
-- Treat `supabase/schema.sql` and existing database contracts as authoritative.
-- Keep client-side access compatible with the public/publishable Supabase key.
+- Treat `supabase/migrations/` and existing database contracts (views, RPC signatures,
+  RLS policies) as authoritative. There is no `schema.sql` and no `seed.sql`.
+- Schema changes go in a **new** timestamped migration (`YYYYMMDDHHMMSS_description.sql`);
+  never edit an already-applied migration. When replacing a policy or view, restate the
+  full current definition (see `database.md` — later migrations re-create earlier ones).
+- Any new public aggregate/view must exclude soft-deleted comments (`deleted_at is null`).
+- Keep client-side access compatible with the public/publishable Supabase key and RLS.
 - Handle loading, empty, and error states for database-backed UI.
-- Do not change seed data or schema unless the task requires it.
+- Do not change seed/reference data (provinces) or schema unless the task requires it.
 
 ## Verification
 
 Before finishing a change:
 
 1. Run `npm run build`.
-2. Check the affected route at desktop and mobile widths when UI is involved.
+2. Check the affected route at desktop and mobile widths when UI is involved
+   (`.claude/launch.json` defines `dev` on 5173 and `dev-preview` on 5199).
 3. Confirm no local environment files or generated output are staged.
-4. Report any verification that could not be run.
+4. Report any verification that could not be run (e.g. no Supabase credentials available).
 
 ## Git and Deployment
 
-- Use the project-local Git identity configured in `.git/config`.
-- Keep commits focused and use clear messages.
+- Use the project-local Git identity configured in `.git/config` when present
+  (the owner commits as `olehrechukh`).
+- Keep commits focused and use clear, imperative messages (e.g. "Add admin import and soft deletion").
 - Vercel deploys from the connected GitHub repository when changes are pushed to `main`.
+  Database migrations are **not** applied automatically — they must be pushed with
+  `supabase db push` (or pasted in the SQL editor) by the owner.
 - Do not force-push or rewrite history unless explicitly requested.
+
+## Keeping this knowledge base current
+
+If you change architecture, schema, domain rules, env/deploy setup, or resolve an item in
+`known-issues.md`, update the matching file in `docs/agents/` in the same change.
