@@ -112,9 +112,19 @@ Before finishing a change:
 
 ## Agent skills (`.claude/skills/`)
 
-Vendored from [obra/superpowers](https://github.com/obra/superpowers) (MIT, see
-`.claude/skills/LICENSE-superpowers`). Claude Code loads them automatically; other agents
-should read the `SKILL.md` files directly.
+Popular open-source skills, vendored unmodified (sources, commits and licenses in
+`.claude/skills/README.md`). Claude Code loads them automatically; other agents should read
+the `SKILL.md` files directly.
+
+**Code style and simplicity**
+
+- `karpathy-guidelines` — the KISS rule set. Apply to every code change: state assumptions,
+  write the minimum code that solves the task, no speculative abstractions or config, touch
+  only what the task needs, define how you will verify it.
+- `react-best-practices` (Vercel) — React performance and style rules. Apply when writing or
+  reviewing components and data fetching.
+
+**Bugs and verification**
 
 - `systematic-debugging` — use for any bug, failing build or unexpected behavior: find the
   root cause before proposing a fix. If the bug is not fixed in the same change, record it in
@@ -122,8 +132,18 @@ should read the `SKILL.md` files directly.
 - `verification-before-completion` — use before claiming work is done, fixed or passing:
   run `npm run check` and show its output first.
 
-Mentions of `superpowers:test-driven-development` inside them refer to a skill that is not
-vendored; this repo has no test runner, so use a one-off reproduction instead.
+**How they apply to this project (these overrides win over the skills):**
+
+1. Precedence: this file > `karpathy-guidelines` > `react-best-practices`. When a rule
+   would add code or complexity, simplicity wins.
+2. This is a client-only Vite SPA on React 18. Skip the Next.js, Server Components,
+   server actions, `next/dynamic` and `server-*` rules in `react-best-practices`, and its
+   React 19-only APIs.
+3. Do not add dependencies a rule suggests (SWR, `better-all`, `lru-cache`, etc.) without
+   the owner's approval; use the existing `useFeed()` / `useComments()` / `feedApi.js` layer.
+4. Do not apply rules as a refactor of untouched code — only to code the task already changes.
+5. There is no test runner: where a skill says "write a test", use a one-off reproduction
+   and `npm run check`. `superpowers:test-driven-development` is not vendored.
 
 ## Keeping this knowledge base current
 
