@@ -132,6 +132,15 @@ the `SKILL.md` files directly.
 - `verification-before-completion` — use before claiming work is done, fixed or passing:
   run `npm run check` and show its output first.
 
+**Code review**
+
+- `review-guidelines` — this repo's review checklist (what to flag, P0–P3). Used by Factory
+  Droid's PR reviewer and by Claude's `/code-review`. Source of truth:
+  `.factory/skills/review-guidelines/SKILL.md`; update it when project rules change.
+
+Skills are shared between Claude Code (`.claude/skills/`) and Factory Droid
+(`.factory/skills/`) via symlinks — see `.claude/skills/README.md`.
+
 **How they apply to this project (these overrides win over the skills):**
 
 1. Precedence: this file > `karpathy-guidelines` > `react-best-practices`. When a rule

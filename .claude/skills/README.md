@@ -1,6 +1,12 @@
 # Vendored agent skills
 
-Copied unmodified from upstream. To update, re-copy the skill directory from the source
+Copied unmodified from upstream. Factory Droid reads skills from `.factory/skills/`, which
+symlinks each vendored skill back here, so both tools share one copy. Add new shared skills
+here and symlink them from `.factory/skills/`.
+
+`review-guidelines` is project-owned (not vendored): it lives in
+`.factory/skills/review-guidelines/` because Factory's review-guideline mining job writes
+there, and is symlinked into this folder for Claude Code. To update, re-copy the skill directory from the source
 and bump the commit below. Project-specific overrides live in the root `AGENTS.md`
 ("Agent skills" section), not in these files.
 
