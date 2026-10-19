@@ -21,9 +21,13 @@ export default function RankingTable({ entries, compact = false }) {
         <tbody>
           {entries.map((e) => (
             <tr key={e.rank}>
-              <td className="col-rank"><span className={`rank-badge rank-badge--${e.rank <= 3 ? 'top' : 'std'}`}>{e.rank}</span></td>
+              <td className="col-rank">
+                <span className={`rank-badge rank-badge--${e.rank <= 3 ? 'top' : 'std'}`}>{e.rank}</span>
+              </td>
               <td>
-                <Link to={`/plate/${e.plate}`} className="plate-tag plate-tag--sm">{e.plate}</Link>
+                <Link to={`/plate/${e.plate}`} className="plate-tag plate-tag--sm">
+                  {e.plate}
+                </Link>
               </td>
               {!compact && <td className="col-region">{provinceName(e.province)}</td>}
               <td className="col-num ranking-score">{e.score > 0 ? `+${e.score}` : e.score}</td>

@@ -11,7 +11,10 @@ export default function AppGate({ children }) {
   const error = lang.error || feed.error
 
   if (error) {
-    const retry = () => { lang.reload(); feed.refresh() }
+    const retry = () => {
+      lang.reload()
+      feed.refresh()
+    }
     return (
       <div className="boot boot--error">
         <span className="ua-strip boot__badge" aria-hidden="true">
@@ -19,10 +22,10 @@ export default function AppGate({ children }) {
           <span className="ua-strip__code">UA</span>
         </span>
         <h1 className="boot__title">Could not load data / Не вдалося завантажити дані</h1>
-        <p className="boot__text">
-          The app reads its content from Supabase.
-        </p>
-        <button className="btn btn--primary" onClick={retry}>Retry / Повторити</button>
+        <p className="boot__text">The app reads its content from Supabase.</p>
+        <button className="btn btn--primary" onClick={retry}>
+          Retry / Повторити
+        </button>
       </div>
     )
   }

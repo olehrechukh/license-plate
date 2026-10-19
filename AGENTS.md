@@ -19,13 +19,13 @@ leaderboard ranks the worst plates.
 
 ## Knowledge base (read the one you need)
 
-| File | What's in it |
-|---|---|
-| [`docs/agents/architecture.md`](docs/agents/architecture.md) | Provider tree, routes, every page/component, data flow, state, i18n, styling |
-| [`docs/agents/database.md`](docs/agents/database.md) | Tables, views, RLS policies, RPCs, triggers, storage bucket, migration history |
-| [`docs/agents/domain.md`](docs/agents/domain.md) | Plate format + normalization, region codes, categories, scoring, voting, admin features |
-| [`docs/agents/operations.md`](docs/agents/operations.md) | Env vars, local dev, Supabase/Google setup, admin role, deploy, CSP, analytics events |
-| [`docs/agents/known-issues.md`](docs/agents/known-issues.md) | Stale comments, tech debt, gotchas and open ideas — check before "fixing" something |
+| File                                                         | What's in it                                                                            |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| [`docs/agents/architecture.md`](docs/agents/architecture.md) | Provider tree, routes, every page/component, data flow, state, i18n, styling            |
+| [`docs/agents/database.md`](docs/agents/database.md)         | Tables, views, RLS policies, RPCs, triggers, storage bucket, migration history          |
+| [`docs/agents/domain.md`](docs/agents/domain.md)             | Plate format + normalization, region codes, categories, scoring, voting, admin features |
+| [`docs/agents/operations.md`](docs/agents/operations.md)     | Env vars, local dev, Supabase/Google setup, admin role, deploy, CSP, analytics events   |
+| [`docs/agents/known-issues.md`](docs/agents/known-issues.md) | Stale comments, tech debt, gotchas and open ideas — check before "fixing" something     |
 
 `README.md` is the human-facing setup guide.
 
@@ -35,7 +35,10 @@ leaderboard ranks the worst plates.
 - Start the development server with `npm run dev` (http://localhost:5173).
 - Build for production with `npm run build` (output in `dist/`).
 - Preview the production build with `npm run preview`.
-- There is no test runner and no linter configured; always run `npm run build` after code changes.
+- Format with `npm run format` (Prettier: no semicolons, single quotes, no trailing commas, 120 columns).
+- Lint with `npm run lint` (ESLint 9 flat config: `@eslint/js` recommended + React, React Hooks, React Refresh).
+- Run everything CI runs with `npm run check` (`format:check` + `lint` + `build`).
+- There is no test runner yet.
 - The app needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env`; without them
   it builds fine but renders the "Could not load data" screen at runtime.
 
@@ -91,7 +94,7 @@ leaderboard ranks the worst plates.
 
 Before finishing a change:
 
-1. Run `npm run build`.
+1. Run `npm run format`, then `npm run check` (must pass — CI runs the same on every PR and on `main`).
 2. Check the affected route at desktop and mobile widths when UI is involved
    (`.claude/launch.json` defines `dev` on 5173 and `dev-preview` on 5199).
 3. Confirm no local environment files or generated output are staged.
@@ -106,6 +109,21 @@ Before finishing a change:
   Database migrations are **not** applied automatically — they must be pushed with
   `supabase db push` (or pasted in the SQL editor) by the owner.
 - Do not force-push or rewrite history unless explicitly requested.
+
+## Agent skills (`.claude/skills/`)
+
+Vendored from [obra/superpowers](https://github.com/obra/superpowers) (MIT, see
+`.claude/skills/LICENSE-superpowers`). Claude Code loads them automatically; other agents
+should read the `SKILL.md` files directly.
+
+- `systematic-debugging` — use for any bug, failing build or unexpected behavior: find the
+  root cause before proposing a fix. If the bug is not fixed in the same change, record it in
+  `docs/agents/known-issues.md` (symptom, location `file:line`, root cause if known).
+- `verification-before-completion` — use before claiming work is done, fixed or passing:
+  run `npm run check` and show its output first.
+
+Mentions of `superpowers:test-driven-development` inside them refer to a skill that is not
+vendored; this repo has no test runner, so use a one-off reproduction instead.
 
 ## Keeping this knowledge base current
 

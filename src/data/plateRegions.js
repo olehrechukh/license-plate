@@ -8,33 +8,33 @@
 // Source: avtonomera.net.ua (kody-avtomobilnykh-nomeriv…).
 // Slugs must match the `provinces` table.
 const REGION_CODES = {
-  'crimea':           ['AK', 'KK', 'TK', 'MK'],
-  'vinnytska':        ['AB', 'KB', 'MM', 'OK'],
-  'volynska':         ['AC', 'KC', 'CM', 'TC'],
-  'dnipropetrovska':  ['AE', 'KE', 'PP', 'MI'],
-  'donetska':         ['AH', 'KH', 'TH', 'MH'],
-  'zhytomyrska':      ['AM', 'KM', 'TM', 'MB'],
-  'zakarpatska':      ['AO', 'KO', 'MT', 'MO'],
-  'zaporizka':        ['AP', 'KP', 'TP', 'MP'],
+  crimea: ['AK', 'KK', 'TK', 'MK'],
+  vinnytska: ['AB', 'KB', 'MM', 'OK'],
+  volynska: ['AC', 'KC', 'CM', 'TC'],
+  dnipropetrovska: ['AE', 'KE', 'PP', 'MI'],
+  donetska: ['AH', 'KH', 'TH', 'MH'],
+  zhytomyrska: ['AM', 'KM', 'TM', 'MB'],
+  zakarpatska: ['AO', 'KO', 'MT', 'MO'],
+  zaporizka: ['AP', 'KP', 'TP', 'MP'],
   'ivano-frankivska': ['AT', 'KT', 'TO', 'XC'],
-  'kyiv-city':        ['AA', 'KA', 'TT', 'TA'],
-  'kyivska':          ['AI', 'KI', 'TI', 'ME'],
-  'kirovohradska':    ['BA', 'HA', 'XA', 'EA'],
-  'luhanska':         ['BB', 'HB', 'EE', 'EB'],
-  'lvivska':          ['BC', 'HC', 'CC', 'EC'],
-  'mykolaivska':      ['BE', 'HE', 'XE', 'XH'],
-  'odeska':           ['BH', 'HH', 'OO', 'EH'],
-  'poltavska':        ['BI', 'HI', 'XI', 'EI'],
-  'rivnenska':        ['BK', 'HK', 'XK', 'EK'],
-  'sevastopol-city':  ['CH', 'IH', 'OH', 'PH'],
-  'sumska':           ['BM', 'HM', 'XM', 'EM'],
-  'ternopilska':      ['BO', 'HO', 'XO', 'EO'],
-  'kharkivska':       ['AX', 'KX', 'XX', 'EX'],
-  'khersonska':       ['BT', 'HT', 'XT', 'ET'],
-  'khmelnytska':      ['BX', 'HX', 'OX', 'PX'],
-  'cherkaska':        ['CA', 'IA', 'OA', 'PA'],
-  'chernihivska':     ['CB', 'IB', 'OB', 'PB'],
-  'chernivetska':     ['CE', 'IE', 'OE', 'PE']
+  'kyiv-city': ['AA', 'KA', 'TT', 'TA'],
+  kyivska: ['AI', 'KI', 'TI', 'ME'],
+  kirovohradska: ['BA', 'HA', 'XA', 'EA'],
+  luhanska: ['BB', 'HB', 'EE', 'EB'],
+  lvivska: ['BC', 'HC', 'CC', 'EC'],
+  mykolaivska: ['BE', 'HE', 'XE', 'XH'],
+  odeska: ['BH', 'HH', 'OO', 'EH'],
+  poltavska: ['BI', 'HI', 'XI', 'EI'],
+  rivnenska: ['BK', 'HK', 'XK', 'EK'],
+  'sevastopol-city': ['CH', 'IH', 'OH', 'PH'],
+  sumska: ['BM', 'HM', 'XM', 'EM'],
+  ternopilska: ['BO', 'HO', 'XO', 'EO'],
+  kharkivska: ['AX', 'KX', 'XX', 'EX'],
+  khersonska: ['BT', 'HT', 'XT', 'ET'],
+  khmelnytska: ['BX', 'HX', 'OX', 'PX'],
+  cherkaska: ['CA', 'IA', 'OA', 'PA'],
+  chernihivska: ['CB', 'IB', 'OB', 'PB'],
+  chernivetska: ['CE', 'IE', 'OE', 'PE']
 }
 
 // province slug -> all its two-letter codes.
@@ -54,6 +54,8 @@ export const NATIONAL_CODES = new Set(['DI', 'PD', 'ED', 'DC', 'II'])
 
 // First two letters of a normalized plate -> province slug, or null if unknown.
 export function provinceForPlateCode(plate) {
-  const letters = String(plate || '').toUpperCase().replace(/[^A-Z]/g, '')
+  const letters = String(plate || '')
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
   return PLATE_CODE_TO_SLUG[letters.slice(0, 2)] || null
 }

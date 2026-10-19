@@ -57,16 +57,16 @@ and data are ready, then renders the SPA.
 
 ### Database
 
-| Object | Purpose |
-|---|---|
-| `app_config` | single row: `default_lang`, `ranking_period` |
-| `app_strings` | one `jsonb` UI-strings doc per language (`uk`, `en`) |
-| `provinces` | 27 Ukrainian regions (slug, code, uk/en names) |
-| `plates` | plate + region; score is derived from comment votes |
-| `comments` | comment text (uk/en), author, category, photo, base votes |
-| `votes` | one row per (comment, anonymous voter) |
-| `comment_vote_counts` (view) | base up/down votes + live user votes |
-| `plate_rankings` (view) | leaderboard, worst score first |
+| Object                       | Purpose                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| `app_config`                 | single row: `default_lang`, `ranking_period`              |
+| `app_strings`                | one `jsonb` UI-strings doc per language (`uk`, `en`)      |
+| `provinces`                  | 27 Ukrainian regions (slug, code, uk/en names)            |
+| `plates`                     | plate + region; score is derived from comment votes       |
+| `comments`                   | comment text (uk/en), author, category, photo, base votes |
+| `votes`                      | one row per (comment, anonymous voter)                    |
+| `comment_vote_counts` (view) | base up/down votes + live user votes                      |
+| `plate_rankings` (view)      | leaderboard, worst score first                            |
 
 Votes support both anonymous per-browser ids and signed-in users. RLS allows public read;
 plate and comment inserts require authentication, and vote writes go through constrained

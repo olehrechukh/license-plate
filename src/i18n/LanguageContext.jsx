@@ -24,7 +24,11 @@ export function LanguageProvider({ children }) {
   const setLang = useCallback((next) => {
     setLangState((cur) => {
       if (!LANGUAGES.includes(next)) return cur
-      try { localStorage.setItem(STORAGE_KEY, next) } catch { /* ignore */ }
+      try {
+        localStorage.setItem(STORAGE_KEY, next)
+      } catch {
+        /* ignore */
+      }
       return next
     })
   }, [])
@@ -33,23 +37,22 @@ export function LanguageProvider({ children }) {
     document.documentElement.setAttribute('lang', lang)
   }, [lang])
 
-  const value = useMemo(() => ({
-    lang,
-    setLang,
-    languages: LANGUAGES,
-    defaultLang: DEFAULT_LANG,
-    strings: allStrings[lang],
-    // Kept for API compatibility with consumers (e.g. AppGate); always settled.
-    loading: false,
-    error: null,
-    reload: () => {}
-  }), [lang, setLang])
-
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-    </LanguageContext.Provider>
+  const value = useMemo(
+    () => ({
+      lang,
+      setLang,
+      languages: LANGUAGES,
+      defaultLang: DEFAULT_LANG,
+      strings: allStrings[lang],
+      // Kept for API compatibility with consumers (e.g. AppGate); always settled.
+      loading: false,
+      error: null,
+      reload: () => {}
+    }),
+    [lang, setLang]
   )
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
 
 export function useLanguage() {

@@ -26,10 +26,7 @@ export default function Comments() {
           >
             {s('comments.sortNewest')}
           </button>
-          <button
-            className={`sort-toggle__btn ${sort === 'top' ? 'is-active' : ''}`}
-            onClick={() => changeSort('top')}
-          >
+          <button className={`sort-toggle__btn ${sort === 'top' ? 'is-active' : ''}`} onClick={() => changeSort('top')}>
             {s('comments.sortTopVoted')}
           </button>
         </div>
@@ -38,12 +35,7 @@ export default function Comments() {
       {!loading && rows.length === 0 ? (
         <p className="empty-state">{s('comments.empty')}</p>
       ) : (
-        <InfiniteComments
-          comments={rows}
-          hasMore={hasMore}
-          loadMore={loadMore}
-          loadingMore={loadingMore}
-        />
+        <InfiniteComments comments={rows} hasMore={hasMore} loadMore={loadMore} loadingMore={loadingMore} />
       )}
     </div>
   )

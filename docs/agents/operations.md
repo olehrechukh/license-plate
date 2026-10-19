@@ -4,9 +4,9 @@
 
 Defined in `.env` (copy from `.env.example`; `.env` and `.env.*` are gitignored except the example):
 
-| Var | Value |
-|---|---|
-| `VITE_SUPABASE_URL` | `https://<project-ref>.supabase.co` |
+| Var                             | Value                                                |
+| ------------------------------- | ---------------------------------------------------- |
+| `VITE_SUPABASE_URL`             | `https://<project-ref>.supabase.co`                  |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | browser-safe `sb_publishable_…` (or legacy anon) key |
 
 Both are inlined into the bundle at build time by Vite, so they must also be set in the
@@ -20,6 +20,9 @@ Without them `supabase` is `null`, `hasSupabase` is `false`, auth is disabled an
 npm install
 npm run dev          # http://localhost:5173 (strictly `vite`)
 npm run build        # dist/
+npm run format       # Prettier --write
+npm run lint         # ESLint
+npm run check        # format:check + lint + build (same as CI)
 npm run preview
 ```
 
@@ -66,21 +69,21 @@ GA4 measurement id `G-JYR5WCMBJ0` is hard-coded in `index.html`. `trackEvent(nam
 
 Current events:
 
-| Event | Params | Where |
-|---|---|---|
-| `plate_search` / `plate_search_error` | `search_location` (`home_search`/`compact_search`) | `PlateSearch` |
-| `plate_view` | `region`, `has_comments` | `PlateDetail` (once per plate) |
-| `comment_form_opened` | `source` (`plate_detail`/`navigation`) | `NewComment` |
-| `comment_validation_error`, `comment_publish_error` | — | `NewComment` |
-| `comment_published` | `category`, `has_photo`, `region` | `NewComment` |
-| `photo_attached` | `file_type` | `NewComment` |
-| `comment_vote` | `direction` | `CommentCard` |
-| `comment_soft_deleted` | — | `CommentCard` (admin) |
-| `comments_sort_change` | `sort` | `Comments` |
-| `comments_load_more` | — | `InfiniteComments` |
-| `province_directory_view`, `rankings_view` | — | pages |
-| `language_change` | `language` | `LangSwitch` |
-| `sign_in_click`, `sign_in_success` | `method: google` | `AuthControl`, `AuthContext` |
+| Event                                               | Params                                             | Where                          |
+| --------------------------------------------------- | -------------------------------------------------- | ------------------------------ |
+| `plate_search` / `plate_search_error`               | `search_location` (`home_search`/`compact_search`) | `PlateSearch`                  |
+| `plate_view`                                        | `region`, `has_comments`                           | `PlateDetail` (once per plate) |
+| `comment_form_opened`                               | `source` (`plate_detail`/`navigation`)             | `NewComment`                   |
+| `comment_validation_error`, `comment_publish_error` | —                                                  | `NewComment`                   |
+| `comment_published`                                 | `category`, `has_photo`, `region`                  | `NewComment`                   |
+| `photo_attached`                                    | `file_type`                                        | `NewComment`                   |
+| `comment_vote`                                      | `direction`                                        | `CommentCard`                  |
+| `comment_soft_deleted`                              | —                                                  | `CommentCard` (admin)          |
+| `comments_sort_change`                              | `sort`                                             | `Comments`                     |
+| `comments_load_more`                                | —                                                  | `InfiniteComments`             |
+| `province_directory_view`, `rankings_view`          | —                                                  | pages                          |
+| `language_change`                                   | `language`                                         | `LangSwitch`                   |
+| `sign_in_click`, `sign_in_success`                  | `method: google`                                   | `AuthControl`, `AuthContext`   |
 
 Vercel Speed Insights is injected in `src/main.jsx`.
 
@@ -88,4 +91,5 @@ Vercel Speed Insights is injected in `src/main.jsx`.
 
 - Remote: `https://github.com/olehrechukh/license-plate`, default branch `main`.
 - Author identity used by the owner: `olehrechukh`.
-- No CI workflows, no pre-commit hooks, no tests. `npm run build` is the only gate.
+- CI: `.github/workflows/ci.yml` runs `npm ci`, `format:check`, `lint`, `build` (Node 22) on
+  every pull request and push to `main`. No pre-commit hooks, no tests.

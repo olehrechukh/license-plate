@@ -31,11 +31,7 @@ export default function PlateSearch({ compact = false, onSubmitSuccess }) {
   }
 
   return (
-    <form
-      className={`plate-search ${compact ? 'plate-search--compact' : ''}`}
-      onSubmit={submit}
-      role="search"
-    >
+    <form className={`plate-search ${compact ? 'plate-search--compact' : ''}`} onSubmit={submit} role="search">
       {!compact && (
         <label className="plate-search__label" htmlFor={inputId}>
           {s('home.searchLabel')}
@@ -47,7 +43,10 @@ export default function PlateSearch({ compact = false, onSubmitSuccess }) {
           className={`plate-search__input ${invalid ? 'has-error' : ''}`}
           type="text"
           value={value}
-          onChange={(e) => { setValue(e.target.value); setInvalid(false) }}
+          onChange={(e) => {
+            setValue(e.target.value)
+            setInvalid(false)
+          }}
           placeholder={s('home.searchPlaceholder')}
           aria-label={s('home.searchLabel')}
           aria-invalid={invalid}

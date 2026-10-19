@@ -25,13 +25,15 @@ function readSessionVotes(storageKey) {
 }
 
 function voteStorageKey(user) {
-  return user?.id
-    ? `${SESSION_VOTES_KEY}:user:${user.id}`
-    : `${SESSION_VOTES_KEY}:anonymous`
+  return user?.id ? `${SESSION_VOTES_KEY}:user:${user.id}` : `${SESSION_VOTES_KEY}:anonymous`
 }
 
 function writeSessionVotes(storageKey, votes) {
-  try { localStorage.setItem(storageKey, JSON.stringify(votes)) } catch { /* ignore */ }
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(votes))
+  } catch {
+    /* ignore */
+  }
 }
 
 function voteDelta(from, to) {
@@ -85,7 +87,9 @@ export function FeedProvider({ children }) {
   // Current signed-in user, read from a ref so castVote's identity stays fresh
   // across login/logout without re-creating the callback.
   const userRef = useRef(user)
-  useEffect(() => { userRef.current = user }, [user])
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
 
   useEffect(() => {
     storageKeyRef.current = storageKey
@@ -130,7 +134,9 @@ export function FeedProvider({ children }) {
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   const provinceForPlate = useCallback((plate) => {
     return provinceForPlateCode(plate)
@@ -159,111 +165,133 @@ export function FeedProvider({ children }) {
     const signedInUser = userRef.current
     const anonymousKey = signedInUser ? null : voterKey()
     const previousRequest = voteRequestsRef.current.get(comment.id) || Promise.resolve()
-    const request = previousRequest.catch(() => {}).then(async () => {
-      if (!supabase) return
-      const result = signedInUser
-        ? await supabase.rpc('cast_vote_auth', { p_comment_id: comment.id, p_value: value })
-        : await supabase.rpc('cast_vote', { p_comment_id: comment.id, p_voter_key: anonymousKey, p_value: value })
-      if (result?.error) throw result.error
-      operation.status = 'success'
-    })
+    const request = previousRequest
+      .catch(() => {})
+      .then(async () => {
+        if (!supabase) return
+        const result = signedInUser
+          ? await supabase.rpc('cast_vote_auth', { p_comment_id: comment.id, p_value: value })
+          : await supabase.rpc('cast_vote', { p_comment_id: comment.id, p_voter_key: anonymousKey, p_value: value })
+        if (result?.error) throw result.error
+        operation.status = 'success'
+      })
     voteRequestsRef.current.set(comment.id, request)
 
     const optimisticDelta = voteDelta(operations.base, value)
     setVoteDeltas((current) => ({ ...current, [comment.id]: optimisticDelta }))
 
-    request.catch((e) => {
-      console.warn('[feed] vote failed:', e.message || e)
-      if (storageKeyRef.current !== identityKey) return
-      operation.status = 'failed'
-      const active = operations.ops.slice().reverse().find((item) => item.status !== 'failed')
-      const restoredVote = active ? active.value : operations.base
-      const restored = { ...sessionVotesRef.current }
-      if (restoredVote === 0) delete restored[comment.id]
-      else restored[comment.id] = restoredVote
-      sessionVotesRef.current = restored
-      writeSessionVotes(storageKeyRef.current, restored)
-      setSessionVotes(restored)
-      const base = operations.base
-      const currentVote = restoredVote
-      const updated = voteDelta(base, currentVote)
-      setVoteDeltas((current) => {
-        const nextDeltas = { ...current }
-        if (updated.up === 0 && updated.down === 0) delete nextDeltas[comment.id]
-        else nextDeltas[comment.id] = updated
-        return nextDeltas
+    request
+      .catch((e) => {
+        console.warn('[feed] vote failed:', e.message || e)
+        if (storageKeyRef.current !== identityKey) return
+        operation.status = 'failed'
+        const active = operations.ops
+          .slice()
+          .reverse()
+          .find((item) => item.status !== 'failed')
+        const restoredVote = active ? active.value : operations.base
+        const restored = { ...sessionVotesRef.current }
+        if (restoredVote === 0) delete restored[comment.id]
+        else restored[comment.id] = restoredVote
+        sessionVotesRef.current = restored
+        writeSessionVotes(storageKeyRef.current, restored)
+        setSessionVotes(restored)
+        const base = operations.base
+        const currentVote = restoredVote
+        const updated = voteDelta(base, currentVote)
+        setVoteDeltas((current) => {
+          const nextDeltas = { ...current }
+          if (updated.up === 0 && updated.down === 0) delete nextDeltas[comment.id]
+          else nextDeltas[comment.id] = updated
+          return nextDeltas
+        })
       })
-    }).finally(() => {
-      if (voteRequestsRef.current.get(comment.id) === request) {
-        voteRequestsRef.current.delete(comment.id)
-      }
-    })
+      .finally(() => {
+        if (voteRequestsRef.current.get(comment.id) === request) {
+          voteRequestsRef.current.delete(comment.id)
+        }
+      })
     return { dUp: transition.up, dDown: transition.down }
   }, [])
-  const addComment = useCallback(async ({ plate, category, description, sourceUrl, author, photoFile }) => {
-    const norm = normalizePlate(plate)
-    const province = provinceForPlate(norm)
-    if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
-    if (!isValidPlate(norm) || !province) throw new Error('Invalid Ukrainian regional plate.')
-    if (photoFile && !user?.id) throw new Error('You must be signed in to upload a photo.')
-    if (sourceUrl && user?.app_metadata?.role !== 'admin') throw new Error('Only admins can set an import source.')
+  const addComment = useCallback(
+    async ({ plate, category, description, sourceUrl, author, photoFile }) => {
+      const norm = normalizePlate(plate)
+      const province = provinceForPlate(norm)
+      if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
+      if (!isValidPlate(norm) || !province) throw new Error('Invalid Ukrainian regional plate.')
+      if (photoFile && !user?.id) throw new Error('You must be signed in to upload a photo.')
+      if (sourceUrl && user?.app_metadata?.role !== 'admin') throw new Error('Only admins can set an import source.')
 
-    const id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `c-${Date.now()}`
-    const photo = await uploadPhoto(photoFile, user?.id, id)
-    // ignoreDuplicates: existing plates are left untouched (there is no
-    // update policy on plates, so the ON CONFLICT UPDATE path would fail).
-    const { error: plateError } = await supabase.from('plates').upsert(
-      { plate: norm, province },
-      { onConflict: 'plate', ignoreDuplicates: true }
-    )
-    if (plateError) throw new Error(plateError.message || 'Could not save the plate.')
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`
+      const photo = await uploadPhoto(photoFile, user?.id, id)
+      // ignoreDuplicates: existing plates are left untouched (there is no
+      // update policy on plates, so the ON CONFLICT UPDATE path would fail).
+      const { error: plateError } = await supabase
+        .from('plates')
+        .upsert({ plate: norm, province }, { onConflict: 'plate', ignoreDuplicates: true })
+      if (plateError) throw new Error(plateError.message || 'Could not save the plate.')
 
-    // created_at is left to the DB default now — the insert policy rejects
-    // forged timestamps, and client clocks can be skewed.
-    const { error: commentError } = await supabase.from('comments').insert({
-      id, plate: norm, author: author || null, category,
-      text_uk: description, text_en: description, photo, source_url: sourceUrl || null,
-      upvotes: 0, downvotes: 0
-    })
-    if (commentError) throw new Error(commentError.message || 'Could not save the comment.')
+      // created_at is left to the DB default now — the insert policy rejects
+      // forged timestamps, and client clocks can be skewed.
+      const { error: commentError } = await supabase.from('comments').insert({
+        id,
+        plate: norm,
+        author: author || null,
+        category,
+        text_uk: description,
+        text_en: description,
+        photo,
+        source_url: sourceUrl || null,
+        upvotes: 0,
+        downvotes: 0
+      })
+      if (commentError) throw new Error(commentError.message || 'Could not save the comment.')
 
-    // Reflect the new comment in the leaderboard / province counts. The plate
-    // detail page the user lands on next fetches its own fresh comment page.
-    await refresh()
-    return { plate: norm }
-  }, [provinceForPlate, refresh, user])
+      // Reflect the new comment in the leaderboard / province counts. The plate
+      // detail page the user lands on next fetches its own fresh comment page.
+      await refresh()
+      return { plate: norm }
+    },
+    [provinceForPlate, refresh, user]
+  )
 
-  const deleteComment = useCallback(async (commentId) => {
-    if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
-    if (user?.app_metadata?.role !== 'admin') throw new Error('Only admins can remove comments.')
+  const deleteComment = useCallback(
+    async (commentId) => {
+      if (!supabase) throw new Error('Supabase is not configured (missing env vars).')
+      if (user?.app_metadata?.role !== 'admin') throw new Error('Only admins can remove comments.')
 
-    const { error: deleteError } = await supabase.rpc('soft_delete_comment', {
-      p_comment_id: commentId
-    })
-    if (deleteError) throw new Error(deleteError.message || 'Could not remove the comment.')
+      const { error: deleteError } = await supabase.rpc('soft_delete_comment', {
+        p_comment_id: commentId
+      })
+      if (deleteError) throw new Error(deleteError.message || 'Could not remove the comment.')
 
-    setDeletedCommentIds((current) => {
-      const next = new Set(current)
-      next.add(commentId)
-      return next
-    })
-    await refresh()
-  }, [refresh, user])
+      setDeletedCommentIds((current) => {
+        const next = new Set(current)
+        next.add(commentId)
+        return next
+      })
+      await refresh()
+    },
+    [refresh, user]
+  )
 
-  const value = useMemo(() => ({
-    provinces: data?.provinces || [],
-    rankings: data?.rankings || { period: '', entries: [] },
-    provinceCounts: data?.provinceCounts || {},
-    loading,
-    error,
-    refresh,
-    castVote,
-    addComment,
-    deleteComment,
-    deletedCommentIds,
-    sessionVotes,
-    voteDeltas
-  }), [data, loading, error, refresh, castVote, addComment, deleteComment, deletedCommentIds, sessionVotes, voteDeltas])
+  const value = useMemo(
+    () => ({
+      provinces: data?.provinces || [],
+      rankings: data?.rankings || { period: '', entries: [] },
+      provinceCounts: data?.provinceCounts || {},
+      loading,
+      error,
+      refresh,
+      castVote,
+      addComment,
+      deleteComment,
+      deletedCommentIds,
+      sessionVotes,
+      voteDeltas
+    }),
+    [data, loading, error, refresh, castVote, addComment, deleteComment, deletedCommentIds, sessionVotes, voteDeltas]
+  )
 
   return <FeedContext.Provider value={value}>{children}</FeedContext.Provider>
 }

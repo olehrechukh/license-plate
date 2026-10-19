@@ -69,7 +69,11 @@ export default function AuthControl() {
         >
           {signingIn ? <span className="auth-btn__spinner" aria-hidden="true" /> : <GoogleMark />}
         </button>
-        {error && <p className="auth-control__error" role="alert">{errorLabel}</p>}
+        {error && (
+          <p className="auth-control__error" role="alert">
+            {errorLabel}
+          </p>
+        )}
       </div>
     )
   }
@@ -91,11 +95,20 @@ export default function AuthControl() {
         {avatar ? (
           <img className="auth-menu__avatar" src={avatar} alt="" referrerPolicy="no-referrer" />
         ) : (
-          <span className="auth-menu__avatar auth-menu__avatar--initial" aria-hidden="true">{initial}</span>
+          <span className="auth-menu__avatar auth-menu__avatar--initial" aria-hidden="true">
+            {initial}
+          </span>
         )}
         <span className="auth-menu__name">{displayName}</span>
         <svg className="auth-menu__chevron" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-          <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M2.5 4.5 6 8l3.5-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
@@ -103,9 +116,7 @@ export default function AuthControl() {
         <div className="auth-menu__panel" role="menu">
           <div className="auth-menu__identity">
             <span className="auth-menu__identity-name">{displayName}</span>
-            {email && email !== displayName && (
-              <span className="auth-menu__identity-email">{email}</span>
-            )}
+            {email && email !== displayName && <span className="auth-menu__identity-email">{email}</span>}
           </div>
           <button
             className="auth-menu__item"
@@ -121,7 +132,11 @@ export default function AuthControl() {
         </div>
       )}
 
-      {error && <p className="auth-control__error" role="alert">{errorLabel}</p>}
+      {error && (
+        <p className="auth-control__error" role="alert">
+          {errorLabel}
+        </p>
+      )}
     </div>
   )
 }

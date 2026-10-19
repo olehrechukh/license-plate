@@ -3,14 +3,27 @@ import { useI18n } from '../i18n/useI18n.js'
 import { useFeed } from './FeedContext.jsx'
 
 const CYRILLIC_TO_LATIN = {
-  '\u0410': 'A', '\u0412': 'B', '\u0415': 'E', '\u0406': 'I', '\u041a': 'K', '\u041c': 'M',
-  '\u041d': 'H', '\u041e': 'O', '\u0420': 'P', '\u0421': 'C', '\u0422': 'T', '\u0425': 'X'
+  '\u0410': 'A',
+  '\u0412': 'B',
+  '\u0415': 'E',
+  '\u0406': 'I',
+  '\u041a': 'K',
+  '\u041c': 'M',
+  '\u041d': 'H',
+  '\u041e': 'O',
+  '\u0420': 'P',
+  '\u0421': 'C',
+  '\u0422': 'T',
+  '\u0425': 'X'
 }
 
 export function normalizePlate(value) {
   return String(value || '')
     .toUpperCase()
-    .replace(/[\u0410\u0412\u0415\u0406\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425]/g, (letter) => CYRILLIC_TO_LATIN[letter])
+    .replace(
+      /[\u0410\u0412\u0415\u0406\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425]/g,
+      (letter) => CYRILLIC_TO_LATIN[letter]
+    )
     .replace(/\s+/g, '')
     .trim()
 }
@@ -37,12 +50,14 @@ export function useFeedData() {
       const p = provinceBySlug.get(slug)
       return p ? loc(p.name) : slug
     }
-    const categoryLabel = (key) => (strings?.categories?.[key]) || key
+    const categoryLabel = (key) => strings?.categories?.[key] || key
     const commentText = (comment) => loc(comment.text)
 
     const formatDate = (iso) =>
       new Intl.DateTimeFormat(lang === 'uk' ? 'uk-UA' : 'en-GB', {
-        year: 'numeric', month: 'short', day: 'numeric'
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       }).format(new Date(iso))
 
     return {

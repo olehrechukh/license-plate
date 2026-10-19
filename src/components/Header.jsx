@@ -27,13 +27,10 @@ export default function Header() {
           <span className="brand__name">{s('site.name')}</span>
         </Link>
 
-        <button
-          className="nav-toggle"
-          aria-label="Menu"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <span></span><span></span><span></span>
+        <button className="nav-toggle" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+          <span></span>
+          <span></span>
+          <span></span>
         </button>
 
         <nav
@@ -47,9 +44,7 @@ export default function Header() {
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) =>
-                `nav-link ${item.cta ? 'nav-link--cta' : ''} ${isActive ? 'is-active' : ''}`
-              }
+              className={({ isActive }) => `nav-link ${item.cta ? 'nav-link--cta' : ''} ${isActive ? 'is-active' : ''}`}
             >
               {item.label}
             </NavLink>

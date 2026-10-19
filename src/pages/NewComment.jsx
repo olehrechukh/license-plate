@@ -49,9 +49,7 @@ export default function NewComment() {
   const [submitError, setSubmitError] = useState(false)
 
   useEffect(() => {
-    const suggestedAuthor = user?.user_metadata?.full_name
-      || user?.user_metadata?.name
-      || ''
+    const suggestedAuthor = user?.user_metadata?.full_name || user?.user_metadata?.name || ''
     if (suggestedAuthor && !form.author) {
       setForm((current) => (current.author ? current : { ...current, author: suggestedAuthor }))
     }
@@ -92,7 +90,7 @@ export default function NewComment() {
         plate: form.plate,
         category: form.category,
         description: form.description.trim(),
-        sourceUrl: isAdmin ? (form.sourceUrl.trim() || null) : null,
+        sourceUrl: isAdmin ? form.sourceUrl.trim() || null : null,
         author: form.author.trim(),
         photoFile
       })
@@ -117,7 +115,9 @@ export default function NewComment() {
   const region = provinceForPlateCode(normalizedPlate)
   const plateError = errors.plate && (!isValidPlate(normalizedPlate) || !region)
   const plateErrorMessage = plateError
-    ? (isValidPlate(normalizedPlate) ? fields.plate.invalidRegion : fields.plate.invalidFormat)
+    ? isValidPlate(normalizedPlate)
+      ? fields.plate.invalidRegion
+      : fields.plate.invalidFormat
     : fields.plate.help
   const descError = errors.description && form.description.trim().length < 20
   const sourceUrlError = errors.sourceUrl && !isValidSourceUrl(form.sourceUrl)
@@ -141,16 +141,13 @@ export default function NewComment() {
       <div className="container page page--narrow">
         <h1 className="page__title">{s('newComment.title')}</h1>
         <p className="page__intro">
-          {label('newComment.authRequired',
+          {label(
+            'newComment.authRequired',
             'Щоб додати коментар, спершу увійдіть у свій акаунт.',
-            'Please sign in to add a comment.')}
+            'Please sign in to add a comment.'
+          )}
         </p>
-        <button
-          className="auth-btn auth-btn--google"
-          type="button"
-          disabled={signingIn}
-          onClick={signInWithGoogle}
-        >
+        <button className="auth-btn auth-btn--google" type="button" disabled={signingIn} onClick={signInWithGoogle}>
           {signingIn ? <span className="auth-btn__spinner" aria-hidden="true" /> : <GoogleMark />}
           <span className="auth-btn__label">
             {signingIn
@@ -169,7 +166,9 @@ export default function NewComment() {
 
       <form className="form" onSubmit={submit} noValidate>
         <div className="field">
-          <label className="field__label" htmlFor="f-plate">{fields.plate.label}</label>
+          <label className="field__label" htmlFor="f-plate">
+            {fields.plate.label}
+          </label>
           <input
             id="f-plate"
             className={`field__input ${plateError ? 'has-error' : ''}`}
@@ -181,7 +180,9 @@ export default function NewComment() {
             aria-invalid={plateError}
             aria-describedby="f-plate-help"
           />
-          <span id="f-plate-help" className={`field__help ${plateError ? 'has-error' : ''}`}>{plateErrorMessage}</span>
+          <span id="f-plate-help" className={`field__help ${plateError ? 'has-error' : ''}`}>
+            {plateErrorMessage}
+          </span>
           {region && (
             <span className="field__region">
               {s('rankings.colRegion')}: <strong>{provinceName(region)}</strong>
@@ -190,21 +191,22 @@ export default function NewComment() {
         </div>
 
         <div className="field">
-          <label className="field__label" htmlFor="f-category">{fields.category.label}</label>
-          <select
-            id="f-category"
-            className="field__input"
-            value={form.category}
-            onChange={update('category')}
-          >
+          <label className="field__label" htmlFor="f-category">
+            {fields.category.label}
+          </label>
+          <select id="f-category" className="field__input" value={form.category} onChange={update('category')}>
             {Object.entries(categoryOptions).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+              <option key={key} value={key}>
+                {label}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="field">
-          <label className="field__label" htmlFor="f-desc">{fields.description.label}</label>
+          <label className="field__label" htmlFor="f-desc">
+            {fields.description.label}
+          </label>
           <textarea
             id="f-desc"
             className={`field__input field__input--area ${descError ? 'has-error' : ''}`}
@@ -221,7 +223,9 @@ export default function NewComment() {
         </div>
 
         <div className="field">
-          <label className="field__label" htmlFor="f-photo">{fields.photo.label}</label>
+          <label className="field__label" htmlFor="f-photo">
+            {fields.photo.label}
+          </label>
           <input
             id="f-photo"
             className="field__input"
@@ -235,14 +239,14 @@ export default function NewComment() {
             }}
           />
           <span className="field__help">{fields.photo.help}</span>
-          {photoFile && (
-            <img className="photo-preview" src={URL.createObjectURL(photoFile)} alt="" />
-          )}
+          {photoFile && <img className="photo-preview" src={URL.createObjectURL(photoFile)} alt="" />}
         </div>
 
         {isAdmin && (
           <div className="field">
-            <label className="field__label" htmlFor="f-source-url">{fields.sourceUrl.label}</label>
+            <label className="field__label" htmlFor="f-source-url">
+              {fields.sourceUrl.label}
+            </label>
             <input
               id="f-source-url"
               className={`field__input ${sourceUrlError ? 'has-error' : ''}`}
@@ -263,7 +267,9 @@ export default function NewComment() {
         )}
 
         <div className="field">
-          <label className="field__label" htmlFor="f-author">{fields.author.label}</label>
+          <label className="field__label" htmlFor="f-author">
+            {fields.author.label}
+          </label>
           <input
             id="f-author"
             className="field__input"
@@ -283,7 +289,11 @@ export default function NewComment() {
         <button className="btn btn--primary btn--lg" type="submit" disabled={saving}>
           {s('newComment.submit')}
         </button>
-        {submitError && <p className="form-error" role="alert">{s('newComment.submitFailed')}</p>}
+        {submitError && (
+          <p className="form-error" role="alert">
+            {s('newComment.submitFailed')}
+          </p>
+        )}
       </form>
     </div>
   )

@@ -5,15 +5,17 @@ const ICONS = {
   'illegal-parking': '🅿️',
   'sidewalk-blocking': '🚷',
   'lane-misuse': '↔️',
-  'aggression': '😡',
-  'other': '•'
+  aggression: '😡',
+  other: '•'
 }
 
 export default function CategoryBadge({ category }) {
   const { categoryLabel } = useFeedData()
   return (
     <span className={`badge badge--${category}`}>
-      <span className="badge__icon" aria-hidden="true">{ICONS[category] || '•'}</span>
+      <span className="badge__icon" aria-hidden="true">
+        {ICONS[category] || '•'}
+      </span>
       {categoryLabel(category)}
     </span>
   )

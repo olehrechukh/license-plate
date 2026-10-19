@@ -7,7 +7,9 @@ export default function NotFound() {
     <div className="container page page--narrow notfound">
       <span className="notfound__code">404</span>
       <p className="notfound__text">{s('comments.empty')}</p>
-      <Link to="/" className="btn btn--primary">{s('site.name')}</Link>
+      <Link to="/" className="btn btn--primary">
+        {s('site.name')}
+      </Link>
     </div>
   )
 }

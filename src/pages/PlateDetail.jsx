@@ -19,8 +19,12 @@ export default function PlateDetail() {
 
   useEffect(() => {
     let cancelled = false
-    fetchPlate(plateCode).then((r) => { if (!cancelled) setRecord(r) })
-    return () => { cancelled = true }
+    fetchPlate(plateCode).then((r) => {
+      if (!cancelled) setRecord(r)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [plateCode])
 
   useEffect(() => {
@@ -50,9 +54,7 @@ export default function PlateDetail() {
         )}
       </div>
 
-      <h1 className="page__title">
-        {s('plateDetail.commentsForPlate')}
-      </h1>
+      <h1 className="page__title">{s('plateDetail.commentsForPlate')}</h1>
 
       {!loading && rows.length === 0 ? (
         <p className="empty-state">{s('plateDetail.noComments')}</p>

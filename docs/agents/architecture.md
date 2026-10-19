@@ -27,17 +27,17 @@ bilingual "Could not load data / Не вдалося завантажити да
 
 All routes render inside `Layout` (`Header` + `<main>` + `Footer`).
 
-| Path | Page | Data source |
-|---|---|---|
-| `/` | `Home` | hero + `PlateSearch`; 10 newest comments via `fetchComments`; top 5 of `rankings` from feed |
-| `/provinces` | `Provinces` | `ProvinceGrid` (provinces + counts from feed) |
-| `/provinces/:slug` | `Province` | `useComments({ province: slug })`; unknown slug → empty state |
-| `/comments` | `Comments` | `useComments({ sort })`, sort toggle `newest` / `top` |
-| `/rankings` | `Rankings` | `rankings` from feed (top 10, current month) |
-| `/plate/:plate` | `PlateDetail` | `fetchPlate()` header (score, count) + `useComments({ plate })` |
-| `/new-comment` | `NewComment` | auth-gated form; `?plate=XX1234YY` prefills the plate |
-| `/terms`, `/contact` | static | strings only |
-| `*` | `NotFound` | |
+| Path                 | Page          | Data source                                                                                 |
+| -------------------- | ------------- | ------------------------------------------------------------------------------------------- |
+| `/`                  | `Home`        | hero + `PlateSearch`; 10 newest comments via `fetchComments`; top 5 of `rankings` from feed |
+| `/provinces`         | `Provinces`   | `ProvinceGrid` (provinces + counts from feed)                                               |
+| `/provinces/:slug`   | `Province`    | `useComments({ province: slug })`; unknown slug → empty state                               |
+| `/comments`          | `Comments`    | `useComments({ sort })`, sort toggle `newest` / `top`                                       |
+| `/rankings`          | `Rankings`    | `rankings` from feed (top 10, current month)                                                |
+| `/plate/:plate`      | `PlateDetail` | `fetchPlate()` header (score, count) + `useComments({ plate })`                             |
+| `/new-comment`       | `NewComment`  | auth-gated form; `?plate=XX1234YY` prefills the plate                                       |
+| `/terms`, `/contact` | static        | strings only                                                                                |
+| `*`                  | `NotFound`    |                                                                                             |
 
 Vercel rewrites every path to `/index.html`, so deep links work.
 
@@ -124,20 +124,20 @@ avatar/name dropdown with "Sign out" when signed in (closes on outside click / E
 
 ## Components (`src/components/`)
 
-| Component | Notes |
-|---|---|
-| `Layout` | shell with `Header`, `<Outlet/>`, `Footer` |
-| `Header` | brand with UA plate strip, nav links, hamburger (`nav-toggle`) on mobile, `PlateSearch compact`, `LangSwitch`, `AuthControl` |
-| `PlateSearch` | form → normalizes, validates, navigates to `/plate/:plate`; `compact` variant in header |
-| `CommentCard` | plate tag, `CategoryBadge`, region, text (`loc`), photo, "Imported from <host>" link, author/date, admin Delete, vote bar |
-| `InfiniteComments` | list + sentinel |
-| `CategoryBadge` | emoji icon per category + localized label |
-| `RankingTable` | `compact` hides region + comment columns; score shown with `+` if positive |
-| `ProvinceGrid` | cards with all 4 region code chips + comment count |
-| `LangSwitch` | UK / EN toggle |
-| `AuthControl`, `GoogleMark` | auth UI; inline Google SVG |
-| `AppGate` | boot / error gate |
-| `Footer` | tagline, Contact + Terms links, copyright |
+| Component                   | Notes                                                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `Layout`                    | shell with `Header`, `<Outlet/>`, `Footer`                                                                                   |
+| `Header`                    | brand with UA plate strip, nav links, hamburger (`nav-toggle`) on mobile, `PlateSearch compact`, `LangSwitch`, `AuthControl` |
+| `PlateSearch`               | form → normalizes, validates, navigates to `/plate/:plate`; `compact` variant in header                                      |
+| `CommentCard`               | plate tag, `CategoryBadge`, region, text (`loc`), photo, "Imported from <host>" link, author/date, admin Delete, vote bar    |
+| `InfiniteComments`          | list + sentinel                                                                                                              |
+| `CategoryBadge`             | emoji icon per category + localized label                                                                                    |
+| `RankingTable`              | `compact` hides region + comment columns; score shown with `+` if positive                                                   |
+| `ProvinceGrid`              | cards with all 4 region code chips + comment count                                                                           |
+| `LangSwitch`                | UK / EN toggle                                                                                                               |
+| `AuthControl`, `GoogleMark` | auth UI; inline Google SVG                                                                                                   |
+| `AppGate`                   | boot / error gate                                                                                                            |
+| `Footer`                    | tagline, Contact + Terms links, copyright                                                                                    |
 
 ## Styling (`src/styles/`)
 
@@ -152,9 +152,9 @@ avatar/name dropdown with "Sign out" when signed in (closes on outside click / E
 
 ## Local storage keys
 
-| Key | Purpose |
-|---|---|
-| `lp-lang` | selected language |
-| `lp-voter` | anonymous voter id (UUID) |
+| Key                                                           | Purpose                                                                                                         |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `lp-lang`                                                     | selected language                                                                                               |
+| `lp-voter`                                                    | anonymous voter id (UUID)                                                                                       |
 | `lp-session-votes:anonymous` / `lp-session-votes:user:<uuid>` | `{ commentId: ±1 }` ledger for highlighting own votes (legacy key `lp-session-votes` is migrated for anonymous) |
-| Supabase auth keys | managed by supabase-js |
+| Supabase auth keys                                            | managed by supabase-js                                                                                          |

@@ -8,8 +8,12 @@ export default function Footer() {
       <div className="container site-footer__inner">
         <p className="site-footer__tagline">{s('footer.tagline')}</p>
         <div className="site-footer__meta">
-          <Link to="/contact" className="site-footer__link">{s('footer.contactLink')}</Link>
-          <Link to="/terms" className="site-footer__link">{s('nav.terms')}</Link>
+          <Link to="/contact" className="site-footer__link">
+            {s('footer.contactLink')}
+          </Link>
+          <Link to="/terms" className="site-footer__link">
+            {s('nav.terms')}
+          </Link>
         </div>
         <p className="site-footer__copy">{s('footer.copyright')}</p>
       </div>

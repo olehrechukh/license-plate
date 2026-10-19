@@ -2,7 +2,8 @@ import { supabase } from '../lib/supabase.js'
 
 // Columns selected from the comments_feed view (region + live vote counts folded
 // in), shaped into the UI comment object the cards/pages expect.
-const COMMENT_COLS = 'id, plate, province, author, category, text_uk, text_en, photo, source_url, created_at, ups, downs'
+const COMMENT_COLS =
+  'id, plate, province, author, category, text_uk, text_en, photo, source_url, created_at, ups, downs'
 
 export function toComment(row) {
   return {
@@ -75,16 +76,18 @@ export async function fetchRankings(limit = 10) {
     return []
   }
   return (data || []).map((r, i) => ({
-    rank: i + 1, plate: r.plate, province: r.province, score: r.score, commentCount: r.comment_count
+    rank: i + 1,
+    plate: r.plate,
+    province: r.province,
+    score: r.score,
+    commentCount: r.comment_count
   }))
 }
 
 // Map of province slug -> total comment count, for the provinces grid.
 export async function fetchProvinceCounts() {
   if (!supabase) return {}
-  const { data, error } = await supabase
-    .from('province_comment_counts')
-    .select('province, comment_count')
+  const { data, error } = await supabase.from('province_comment_counts').select('province, comment_count')
   if (error) {
     console.warn('[feed] fetchProvinceCounts failed:', error.message || error)
     return {}

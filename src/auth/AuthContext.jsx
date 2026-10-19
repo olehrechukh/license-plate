@@ -77,16 +77,19 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const value = useMemo(() => ({
-    enabled: hasSupabase,
-    loading,
-    session,
-    user: session?.user ?? null,
-    signingIn,
-    error,
-    signInWithGoogle,
-    signOut
-  }), [loading, session, signingIn, error, signInWithGoogle, signOut])
+  const value = useMemo(
+    () => ({
+      enabled: hasSupabase,
+      loading,
+      session,
+      user: session?.user ?? null,
+      signingIn,
+      error,
+      signInWithGoogle,
+      signOut
+    }),
+    [loading, session, signingIn, error, signInWithGoogle, signOut]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

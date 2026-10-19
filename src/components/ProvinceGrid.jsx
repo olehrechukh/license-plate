@@ -15,7 +15,9 @@ export default function ProvinceGrid() {
           <Link key={p.slug} to={`/provinces/${p.slug}`} className="province-card">
             <span className="province-card__codes">
               {(codes.length ? codes : [p.code]).map((c) => (
-                <span key={c} className="code-chip">{c}</span>
+                <span key={c} className="code-chip">
+                  {c}
+                </span>
               ))}
             </span>
             <span className="province-card__name">{provinceName(p.slug)}</span>

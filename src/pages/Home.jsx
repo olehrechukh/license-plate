@@ -17,7 +17,9 @@ export default function Home() {
     fetchComments({ sort: 'newest', from: 0, to: 9 }).then(({ rows }) => {
       if (!cancelled) setSelected(rows)
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const topRanking = rankings.entries.slice(0, 5)
@@ -38,7 +40,9 @@ export default function Home() {
         <div className="page-grid__main">
           <div className="section-head">
             <h2>{s('home.selectedCommentsTitle')}</h2>
-            <Link to="/comments" className="link-more">{s('home.viewAll')} →</Link>
+            <Link to="/comments" className="link-more">
+              {s('home.viewAll')} →
+            </Link>
           </div>
           <div className="comment-list">
             {selected.map((c) => (
@@ -51,7 +55,9 @@ export default function Home() {
           <div className="rail-card">
             <div className="section-head">
               <h2>{s('home.currentRankingTitle')}</h2>
-              <Link to="/rankings" className="link-more">{s('home.viewAll')} →</Link>
+              <Link to="/rankings" className="link-more">
+                {s('home.viewAll')} →
+              </Link>
             </div>
             <RankingTable entries={topRanking} compact />
           </div>

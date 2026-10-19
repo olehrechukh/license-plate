@@ -50,7 +50,7 @@ task calls for it, and remove them from this list when fixed.
   `AuthControl` are likely blocked in production (falls back to a broken image rather than
   the initial). Verify in production before changing.
 - `index.html` hard-codes `lang="uk"`; it is updated at runtime by `LanguageContext`.
-- No tests, no linter, no TypeScript, no CI.
+- No tests and no TypeScript.
 
 ## Ideas mentioned in code but not implemented
 

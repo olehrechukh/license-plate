@@ -58,42 +58,30 @@ export default function CommentCard({ comment, showPlate = true }) {
           </Link>
         )}
         <CategoryBadge category={comment.category} />
-        {comment.province && (
-          <span className="comment-card__region">{provinceName(comment.province)}</span>
-        )}
+        {comment.province && <span className="comment-card__region">{provinceName(comment.province)}</span>}
       </div>
 
       <p className="comment-card__text">{commentText(comment)}</p>
 
-      {comment.photo && (
-        <img className="comment-card__photo" src={comment.photo} alt="" loading="lazy" />
-      )}
+      {comment.photo && <img className="comment-card__photo" src={comment.photo} alt="" loading="lazy" />}
 
       {comment.sourceUrl && (
-        <a
-          className="comment-card__source"
-          href={comment.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a className="comment-card__source" href={comment.sourceUrl} target="_blank" rel="noopener noreferrer">
           {s('comments.importedFrom')} {sourceHost(comment.sourceUrl)} ↗
         </a>
       )}
 
       {deleteError && (
-        <p className="comment-card__delete-error" role="alert">{s('comments.deleteFailed')}</p>
+        <p className="comment-card__delete-error" role="alert">
+          {s('comments.deleteFailed')}
+        </p>
       )}
 
       <div className="comment-card__foot">
         <span className="comment-card__author">@{comment.author}</span>
         <span className="comment-card__date">{formatDate(comment.createdAt)}</span>
         {isAdmin && (
-          <button
-            type="button"
-            className="comment-card__delete"
-            disabled={deleting}
-            onClick={remove}
-          >
+          <button type="button" className="comment-card__delete" disabled={deleting} onClick={remove}>
             {s(deleting ? 'comments.deleting' : 'comments.delete')}
           </button>
         )}

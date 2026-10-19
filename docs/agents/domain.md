@@ -33,6 +33,7 @@ Keys (must stay identical across all places listed below):
 `dangerous-driving`, `illegal-parking`, `sidewalk-blocking`, `lane-misuse`, `aggression`, `other`.
 
 Defined in:
+
 - `strings.{uk,en}.categories` (labels on cards),
 - `strings.{uk,en}.newComment.fields.category.options` (form `<select>`; default `dangerous-driving`),
 - `ICONS` in `src/components/CategoryBadge.jsx`,
@@ -59,7 +60,7 @@ The DB only enforces `char_length(category) <= 50`.
 - Identity: signed in → `auth:<uid>` (server-verified); anonymous → random UUID in
   localStorage `lp-voter` (best-effort; clearing storage allows re-voting).
 - Vote rows are private; clients only see aggregate `ups` / `downs`.
-- "+" means *agree with the report* (the driver was bad), "−" means *disagree*.
+- "+" means _agree with the report_ (the driver was bad), "−" means _disagree_.
 
 ## Scoring and rankings
 

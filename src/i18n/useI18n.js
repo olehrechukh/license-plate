@@ -12,7 +12,7 @@ export function format(template, params = {}) {
 // Pick the active-language leaf from a {uk, en} localized value.
 // Falls back to the raw value if it isn't a localized object.
 export function pickLocalized(value, lang) {
-  if (value && typeof value === 'object' && (lang in value)) return value[lang]
+  if (value && typeof value === 'object' && lang in value) return value[lang]
   return value
 }
 
@@ -28,10 +28,7 @@ export function useI18n() {
 
   return useMemo(() => {
     const s = (path) => {
-      const val = path.split('.').reduce(
-        (acc, key) => (acc == null ? undefined : acc[key]),
-        strings
-      )
+      const val = path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), strings)
       return val == null ? path : val
     }
     const t = (path, params) => format(s(path), params)

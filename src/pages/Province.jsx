@@ -17,7 +17,9 @@ export default function Province() {
       <div className="container page">
         <h1 className="page__title">{s('provinces.title')}</h1>
         <p className="empty-state">{s('comments.empty')}</p>
-        <Link to="/provinces" className="btn btn--ghost">← {s('nav.provinces')}</Link>
+        <Link to="/provinces" className="btn btn--ghost">
+          ← {s('nav.provinces')}
+        </Link>
       </div>
     )
   }
@@ -34,12 +36,7 @@ export default function Province() {
       {!loading && rows.length === 0 ? (
         <p className="empty-state">{s('comments.empty')}</p>
       ) : (
-        <InfiniteComments
-          comments={rows}
-          hasMore={hasMore}
-          loadMore={loadMore}
-          loadingMore={loadingMore}
-        />
+        <InfiniteComments comments={rows} hasMore={hasMore} loadMore={loadMore} loadingMore={loadingMore} />
       )}
     </div>
   )

@@ -32,7 +32,9 @@ export function useComments({ plate, province, sort = 'newest' } = {}) {
       setCount(count)
       setLoading(false)
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [plate, province, sort])
 
   const loadMore = useCallback(async () => {
