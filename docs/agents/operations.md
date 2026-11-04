@@ -84,6 +84,52 @@ Vercel Speed Insights is injected in `src/main.jsx`.
 `.github/workflows/ci.yml` runs `npm ci` and `npm run format:check`, `lint`, `build` (Node 22) on
 every pull request and push to `main`. No pre-commit hooks, no tests.
 
+`.github/workflows/qa.yml` runs functional QA on pull requests. It resolves the branch's Vercel
+preview deployment through the GitHub Deployments API, runs the `qa` skill
+([`.factory/skills/qa/`](../.factory/skills/qa/SKILL.md)) against it, and posts a single
+updating PR comment with the report. Fork pull requests are skipped because they get no
+secrets.
+
+Required repository secrets:
+
+| Secret                            | Purpose                                                                               |
+| --------------------------------- | ------------------------------------------------------------------------------------- |
+| `FACTORY_API_KEY`                 | Authenticates `droid exec` in the workflow.                                           |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Bypasses Vercel Authentication on preview deployments.                                |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`   | Publishable key for the API-level RLS checks. Public by design, but kept as a secret. |
+
+`VERCEL_AUTOMATION_BYPASS_SECRET` is generated in the Vercel project's Deployment Protection
+settings (Settings → Deployment Protection → Protection Bypass for Automation → Create). Without
+it the preview deployment redirects to `vercel.com/sso-api` and every web test is reported as
+BLOCKED. The workflow sends it as the `x-vercel-protection-bypass` header together with
+`x-vercel-set-bypass-cookie: true`, so the browser stays authorized across later navigations.
+
+The Vercel project is on the **Hobby** plan with `ssoProtection` set to
+`all_except_custom_domains`, so every preview deployment is behind Vercel Authentication.
+Two access paths exist:
+
+- **CI (in use):** the static bypass secret above. It works on all plans and needs no
+  dashboard rule for GitHub Actions.
+- **Local:** a short-lived Trusted Sources OIDC token from the Vercel CLI, which needs no
+  static secret. Requires Vercel CLI 53.3.0+, an authenticated `vc whoami`, and the
+  project's default self-access rule (development → preview):
+
+  ```bash
+  TOKEN="$(vc project token license-plate --scope olehrechukhs-projects)"
+  agent-browser open "$PREVIEW_URL" --headers "{\"x-vercel-trusted-oidc-idp-token\":\"$TOKEN\"}"
+  ```
+
+  GitHub Actions Trusted Sources are not reliable on the Hobby plan, which is why CI uses the
+  bypass secret instead.
+
+In agent-browser, always use `open --headers` for the bypass. `agent-browser set headers`
+applies headers globally, so the secret would be sent to every origin the page loads.
+
+**Preview deployments share the production Supabase project.** The Vercel build inlines
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, so a preview reads and writes the same
+database as production. QA is therefore read-only apart from one anonymous vote that it clears
+itself. See `.factory/skills/qa/config.yaml`.
+
 ## Repository
 
 Remote `https://github.com/olehrechukh/license-plate`, default branch `main`; the owner commits as

@@ -1,0 +1,140 @@
+project: AutoKarma
+platform: github
+imagemagick: false
+video_evidence: false
+droid_control:
+  plugin: droid-control@factory-plugins
+  compose: false
+
+environments:
+  production:
+    url: https://license-plate-alpha.vercel.app
+    restrictions:
+      - Read-only. Never post comments, vote, or upload photos against production.
+      - Use this environment only for a read-only smoke check of the deployed build.
+  preview:
+    url: '' # supplied at runtime by the CI workflow via PREVIEW_URL
+    restrictions:
+      - Must be the Vercel preview deployment for the branch under test.
+      - Preview deployments are protected by Vercel Authentication (SSO). Requests
+        require the x-vercel-protection-bypass header with VERCEL_AUTOMATION_BYPASS_SECRET
+        and the x-vercel-set-bypass-cookie header set to true, so later in-browser
+        navigation stays authorized.
+      - Preview shares the production Supabase project, so QA writes are visible to
+        real users. Only the specific write flows listed in qa-backend are allowed.
+
+default_target: preview
+
+auth:
+  method: oauth
+  provider: custom
+  # Supabase Auth with the Google OAuth provider. There is no email/password path.
+  # In a non-interactive CI environment there is no human to complete the Google
+  # consent screen, so authenticated browser flows are BLOCKED by design.
+  # See qa-web "Google sign-in cannot be automated" for the full reasoning.
+
+personas:
+  - name: anonymous
+    description: 'Not signed in. Can browse, search and vote; cannot post comments.'
+    test_focus:
+      - plate search and validation
+      - browsing comments, provinces and rankings
+      - anonymous voting
+      - the sign-in gate on the new-comment form
+    cannot_do:
+      - post a comment
+      - upload a photo
+      - soft-delete a comment
+  - name: signed_in
+    description: 'Google-authenticated user. Can post comments and upload photos.'
+    email: ''
+    credentials_source: manual
+    test_focus:
+      - posting a comment with a valid plate and category
+      - photo upload
+    cannot_do:
+      - soft-delete a comment
+    # No automated credential exists. A human must sign in with Google manually.
+    # QA marks these flows BLOCKED when no session is provided.
+  - name: admin
+    description: 'User with app_metadata.role = admin. Can soft-delete comments.'
+    email: ''
+    credentials_source: manual
+    test_focus:
+      - the Delete button on comment cards
+      - soft delete via the soft_delete_comment RPC
+    cannot_do: []
+    # No automated credential exists. The admin claim is a JWT claim set with SQL;
+    # the user must sign out and back in to pick it up.
+
+apps:
+  web:
+    path_patterns:
+      - 'src/pages/**'
+      - 'src/components/**'
+      - 'src/data/**'
+      - 'src/auth/**'
+      - 'src/i18n/**'
+      - 'src/lib/**'
+      - 'src/styles/**'
+      - 'src/App.jsx'
+      - 'src/main.jsx'
+      - 'index.html'
+      - 'public/**'
+      - 'vercel.json'
+      - 'vite.config.js'
+      - 'package.json'
+    skill: qa-web
+    test_tool: agent-browser
+    build_command: 'npm ci && npm run build'
+  backend:
+    path_patterns:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+    skill: qa-backend
+    test_tool: curl
+    build_command: ''
+
+feature_flags:
+  provider: none
+  dashboard_url: ''
+  how_to_override: 'No feature flags. The app has one deployment environment per Vercel target.'
+
+integrations:
+  supabase:
+    provider: supabase
+    url: https://pqdhxkqgooftmqtpscpt.supabase.co
+    # The publishable key ships to the browser by design, so it is public.
+    # The service-role key is NEVER needed for QA and must not be added here.
+    anon_key_env: VITE_SUPABASE_PUBLISHABLE_KEY
+  vercel:
+    provider: vercel
+    project: license-plate
+    team: olehrechukhs-projects
+    # Preview URLs are discovered from the GitHub Deployments API, which the
+    # Vercel Git integration populates. No Vercel API token is required.
+    preview_url_source: github-deployments-api
+    bypass_secret_env: VERCEL_AUTOMATION_BYPASS_SECRET
+
+cleanup:
+  auto_cleanup: true
+  strategy: manual
+  instructions: >-
+    Read-only browser flows create nothing. The backend suite creates one vote row
+    for a fixed QA voter key and clears it in the same run by calling cast_vote
+    with p_value 0. If a run is interrupted after voting, clear it with:
+    cast_vote(p_comment_id, 'qa-probe-voter-9c3d1f', 0).
+
+failure_learning: suggest_in_report
+
+# Notes that apply to every flow in this project.
+#
+# - The app renders a bilingual boot screen while FeedProvider loads provinces,
+#   rankings and province counts. "Could not load data / Не вдалося завантажити
+#   дані" means the Supabase env vars were missing from the build, not that the
+#   database is empty.
+# - Post-boot fetch errors are swallowed and shown as an empty list, so an empty
+#   comment list is not proof of a working query. Assert on the API response
+#   directly for data correctness.
+# - The CSP in vercel.json does not allow lh3.googleusercontent.com, so Google
+#   avatars do not load in production. Do not report that as a regression.
