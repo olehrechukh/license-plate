@@ -1,0 +1,394 @@
+name: QA
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: qa-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: read
+
+jobs:
+  qa:
+    # Fork pull requests get no repository secrets, so the QA agent cannot
+    # authenticate. Skip them instead of running a job that cannot work.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      SUPABASE_URL: https://pqdhxkqgooftmqtpscpt.supabase.co
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve PR metadata
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "base=${PR_BASE_REF}" >> "$GITHUB_OUTPUT"
+            echo "head_sha=${PR_HEAD_SHA}" >> "$GITHUB_OUTPUT"
+            git fetch origin "+refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}"
+            echo "base_sha=$(git rev-parse refs/remotes/origin/${PR_BASE_REF})" >> "$GITHUB_OUTPUT"
+          else
+            # Manual run: diff against main.
+            git fetch origin "+refs/heads/main:refs/remotes/origin/main"
+            echo "number=" >> "$GITHUB_OUTPUT"
+            echo "base=main" >> "$GITHUB_OUTPUT"
+            echo "head_sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "base_sha=$(git rev-parse refs/remotes/origin/main)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Wait for Vercel preview deployment
+        id: preview
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+        run: |
+          set -uo pipefail
+          # The runner default shell is `bash -e`; disable errexit so a
+          # transient API error degrades to "no preview" instead of aborting.
+          set +e
+          REPO="${{ github.repository }}"
+          API="https://api.github.com/repos/${REPO}/deployments"
+          PREVIEW_URL=""
+
+          # A transient API error must not abort the job; degrade to "no preview".
+          api_get() {
+            curl -fsS \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "$1" 2>/dev/null || echo ""
+          }
+
+          for attempt in $(seq 1 30); do
+            echo "Looking for a Preview deployment of ${HEAD_SHA} (attempt ${attempt}/30)"
+            DEPLOY_ID=$(api_get "${API}?sha=${HEAD_SHA}&per_page=20" \
+              | jq -r '[.[] | select(.environment == "Preview")][0].id // empty' 2>/dev/null)
+
+            if [ -n "${DEPLOY_ID}" ] && [ "${DEPLOY_ID}" != "null" ]; then
+              STATUSES=$(api_get "${API}/${DEPLOY_ID}/statuses")
+              STATE=$(printf '%s' "${STATUSES}" | jq -r '.[0].state // empty' 2>/dev/null)
+              if [ "${STATE}" = "success" ]; then
+                PREVIEW_URL=$(printf '%s' "${STATUSES}" | jq -r '.[0].environment_url // empty' 2>/dev/null)
+                if [ -n "${PREVIEW_URL}" ] && [ "${PREVIEW_URL}" != "null" ]; then
+                  echo "Preview deployment ready: ${PREVIEW_URL}"
+                  break
+                fi
+              elif [ "${STATE}" = "failure" ] || [ "${STATE}" = "error" ]; then
+                echo "::warning::Vercel deployment for ${HEAD_SHA} ended in state ${STATE}"
+                break
+              fi
+            fi
+            sleep 10
+          done
+
+          if [ -z "${PREVIEW_URL}" ]; then
+            echo "::warning::No Vercel preview deployment found for ${HEAD_SHA}. Web tests will be reported as BLOCKED."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=${PREVIEW_URL}" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify preview access
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          set -uo pipefail
+          # This step only diagnoses. It must never fail the job, because the
+          # backend suite does not need the preview URL and still produces
+          # useful results when the web suite is unreachable.
+          if [ -z "${PREVIEW_URL:-}" ]; then
+            echo "::warning::No preview URL. The web suite will report BLOCKED."
+            exit 0
+          fi
+          if [ -z "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" ]; then
+            echo "::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set. The web suite will report BLOCKED."
+            exit 0
+          fi
+          # Mask the secret before it can appear in any log line.
+          echo "::add-mask::${VERCEL_AUTOMATION_BYPASS_SECRET}"
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}" \
+            -H "x-vercel-set-bypass-cookie: true" \
+            "${PREVIEW_URL}" 2>/dev/null) || CODE="000"
+          if [ "${CODE}" = "200" ]; then
+            echo "Preview reachable with the bypass header (HTTP ${CODE})."
+          else
+            echo "::warning::Preview returned HTTP ${CODE:-000} with the bypass header. The web suite will report BLOCKED."
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install droid CLI
+        run: |
+          curl -fsSL https://app.factory.ai/cli | sh
+          # The installer drops the binary in ~/.local/bin on Linux runners.
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install agent-browser
+        run: |
+          set -euo pipefail
+          # The qa-web sub-skill drives the app through agent-browser.
+          npm install -g agent-browser
+          agent-browser --version
+          # GitHub's ubuntu runners ship Chrome. If this runner does not, let
+          # agent-browser fetch a Chrome for Testing build.
+          if ! command -v google-chrome google-chrome-stable chromium chromium-browser > /dev/null 2>&1; then
+            echo "No system Chrome found; installing Chrome for Testing."
+            agent-browser install
+          fi
+          agent-browser doctor --offline --quick
+
+      - name: Install droid-control plugin
+        run: |
+          set -euo pipefail
+          # The marketplace is declared in .factory/settings.json, so it is
+          # already registered. Installing the plugin itself is not automatic,
+          # and `droid plugin install` errors if it is already present, so
+          # check first and only install when it is missing.
+          if ! droid plugin list --scope project | grep -q 'droid-control@factory-plugins'; then
+            droid plugin install droid-control@factory-plugins --scope project
+          fi
+          droid plugin list --scope project | grep -q 'droid-control@factory-plugins'
+
+      - name: Run QA
+        id: qa
+        continue-on-error: true
+        env:
+          # Secrets are scoped to this step only, so no third-party script run
+          # in another step can read them.
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          QA_BASE_REF: ${{ steps.pr.outputs.base_sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          # Mask the secrets so they cannot leak through the agent's output.
+          for name in FACTORY_API_KEY VERCEL_AUTOMATION_BYPASS_SECRET VITE_SUPABASE_PUBLISHABLE_KEY; do
+            value="${!name:-}"
+            if [ -n "${value}" ]; then
+              echo "::add-mask::${value}"
+            fi
+          done
+
+          mkdir -p qa-results
+          # `bash -e` is the runner default, so disable errexit around the
+          # pipeline to capture the agent's exit code instead of aborting.
+          set +e
+          droid exec --auto high "\
+            You are running in a non-interactive CI environment. There is NO human available. \
+            Do NOT use AskUser, do NOT wait for confirmations, do NOT pause for input. \
+            Do NOT print the values of environment variables. \
+            Run the qa skill. \
+            The diff base is ${QA_BASE_REF}; run 'git diff ${QA_BASE_REF}...HEAD' to see the changed files. \
+            The preview URL for this branch is ${PREVIEW_URL:-NONE}; if it is NONE, report all web tests as BLOCKED. \
+            Write the final report to qa-results/report.md" \
+            2>&1 | tee qa-output.txt
+          QA_EXIT="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=${QA_EXIT}" >> "$GITHUB_OUTPUT"
+          echo "QA agent exited with ${QA_EXIT}"
+
+      - name: Redact secrets from QA output
+        if: always()
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+        run: |
+          set -uo pipefail
+          # The report is published in a PR comment and uploaded as an artifact,
+          # both of which outlive the job. If the agent ever echoed a secret
+          # into its output, strip it before anything is published.
+          if [ -z "${VERCEL_AUTOMATION_BYPASS_SECRET:-}${FACTORY_API_KEY:-}" ]; then
+            exit 0
+          fi
+          python3 - <<'PY'
+          import os, pathlib
+
+          secrets = [
+              os.environ.get("VERCEL_AUTOMATION_BYPASS_SECRET", ""),
+              os.environ.get("FACTORY_API_KEY", ""),
+          ]
+          secrets = [s for s in secrets if s]
+
+          root = pathlib.Path("qa-results")
+          if not root.is_dir():
+              raise SystemExit(0)
+
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  # Binary evidence (screenshots) is not searched.
+                  continue
+              redacted = text
+              for secret in secrets:
+                  redacted = redacted.replace(secret, "[REDACTED]")
+              if redacted != text:
+                  path.write_text(redacted, encoding="utf-8")
+                  print(f"Redacted secrets from {path}")
+          PY
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-results
+          path: qa-results/
+          retention-days: 14
+
+      - name: Post QA report as PR comment
+        # `always()` also runs on cancellation, and concurrency cancels an
+        # in-flight run when a newer commit arrives. A cancelled run must not
+        # publish, or it can overwrite the sticky comment with a stale report.
+        if: always() && !cancelled() && steps.pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+        run: |
+          set -uo pipefail
+          # The runner default shell is `bash -e`; disable errexit so a
+          # transient API error cannot swallow the report.
+          set +e
+          if [ -f qa-results/report.md ]; then
+            BODY=$(cat qa-results/report.md)
+          else
+            BODY=$(printf '## QA Report\n\n:no_entry: QA run produced no report. Check the job log.\n')
+          fi
+
+          # A PR comment is public and permanent. Strip any secret the agent
+          # may have echoed into the report before it is published.
+          for secret in "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" "${FACTORY_API_KEY:-}"; do
+            if [ -n "${secret}" ]; then
+              BODY=${BODY//"${secret}"/[REDACTED]}
+            fi
+          done
+
+          # Ensure the report starts with the expected heading.
+          case "$BODY" in
+            "## QA Report"*) ;;
+            *) BODY=$(printf '## QA Report\n\n%s\n' "$BODY") ;;
+          esac
+
+          # The Issues API rejects a body longer than 65536 characters with
+          # HTTP 422. A report with per-flow evidence can exceed that, so
+          # truncate and point at the artifact for the full text.
+          MAX_BODY=60000
+          if [ "${#BODY}" -gt "${MAX_BODY}" ]; then
+            echo "::warning::Report is ${#BODY} characters, truncating to ${MAX_BODY}. Full report is in the job artifacts."
+            BODY="${BODY:0:${MAX_BODY}}"
+            BODY=$(printf '%s\n\n… report truncated. See the job artifacts for the full report.' "$BODY")
+          fi
+
+          FOOTER=$(printf '\n\n---\n\n[QA run logs](https://github.com/%s/actions/runs/%s) · raw evidence in job artifacts\n' \
+            "${{ github.repository }}" "${{ github.run_id }}")
+
+          {
+            printf '<!-- qa-report -->\n'
+            printf '%s\n' "$BODY"
+            printf '%s\n' "$FOOTER"
+          } > qa-comment.md
+
+          # Update the single sticky report comment instead of adding a new one.
+          # The API returns comments oldest-first and paginates, so walk the
+          # pages until the marker is found instead of only reading page 1.
+          EXISTING=""
+          for page in 1 2 3 4 5 6 7 8 9 10; do
+            PAGE_JSON=$(curl -fsS \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments?per_page=100&page=${page}" \
+              2>/dev/null)
+            PAGE_ID=$(printf '%s' "${PAGE_JSON}" \
+              | jq -r '[.[] | select(.body | startswith("<!-- qa-report -->"))][0].id // empty' 2>/dev/null)
+            if [ -n "${PAGE_ID}" ] && [ "${PAGE_ID}" != "null" ]; then
+              EXISTING="${PAGE_ID}"
+              break
+            fi
+            # A short page means there are no more comments.
+            PAGE_COUNT=$(printf '%s' "${PAGE_JSON}" | jq -r 'length' 2>/dev/null)
+            if [ -z "${PAGE_COUNT}" ] || [ "${PAGE_COUNT}" -lt 100 ]; then
+              break
+            fi
+          done
+
+          if [ -n "${EXISTING}" ]; then
+            curl -fsS -X PATCH \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              --data-binary @<(jq -Rs '{body: .}' qa-comment.md) \
+              "https://api.github.com/repos/${{ github.repository }}/issues/comments/${EXISTING}" \
+              > /dev/null
+            POST_STATUS=$?
+            if [ "${POST_STATUS}" -eq 0 ]; then
+              echo "Updated existing QA comment ${EXISTING}"
+            else
+              echo "::error::Failed to update the QA comment (${EXISTING}). The report is in the job artifacts."
+              exit 1
+            fi
+          else
+            curl -fsS -X POST \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              --data-binary @<(jq -Rs '{body: .}' qa-comment.md) \
+              "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+              > /dev/null
+            POST_STATUS=$?
+            if [ "${POST_STATUS}" -eq 0 ]; then
+              echo "Created QA comment"
+            else
+              echo "::error::Failed to post the QA comment. The report is in the job artifacts."
+              exit 1
+            fi
+          fi
+
+      - name: Propagate QA result
+        if: always() && steps.qa.outcome != 'cancelled'
+        env:
+          QA_EXIT: ${{ steps.qa.outputs.exit_code }}
+        run: |
+          set -uo pipefail
+          if [ -z "${QA_EXIT}" ]; then
+            echo "::warning::The QA step produced no exit code. The report comment is the source of truth."
+            exit 1
+          fi
+          if [ "${QA_EXIT}" != "0" ]; then
+            echo "::error::The QA agent exited with code ${QA_EXIT}."
+            exit 1
+          fi

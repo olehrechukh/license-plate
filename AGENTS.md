@@ -107,6 +107,10 @@ When to use them:
   [known-issues.md](docs/agents/known-issues.md) with symptom, `file:line` and root cause.
 - `verification-before-completion` — before claiming work is done; the command is `npm run check`.
 - `review-guidelines` — reviewing a diff or PR (Claude `/code-review`, Factory Droid review).
+- `qa` (Factory Droid only, `.factory/skills/qa/`) — functional QA against a branch: the
+  `qa-web` sub-skill drives the app in a browser, the `qa-backend` sub-skill checks the RLS
+  boundary through the API. Config: `.factory/skills/qa/config.yaml`. Triggered by the
+  `QA` workflow in `.github/workflows/qa.yml` on pull requests.
 
 How they apply here (these overrides win over the skills):
 

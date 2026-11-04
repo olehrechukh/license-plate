@@ -10,6 +10,9 @@ owned by [`AGENTS.md`](../../AGENTS.md#agent-skills).
 - Vendored skills live here; `.factory/skills/<name>` is a symlink to `../../.claude/skills/<name>`.
 - `review-guidelines` is project-owned and lives in `.factory/skills/review-guidelines/`, because
   Factory's review-guideline job writes there; `.claude/skills/review-guidelines` links to it.
+- The QA skills (`qa`, `qa-web`, `qa-backend`) are project-owned and live in `.factory/skills/`.
+  They are Factory-only: they drive the `droid-control` plugin, which has no Claude Code
+  equivalent. There is no `.claude/skills/` counterpart for them.
 - Link individual skills, never a whole folder — git cannot commit files under a symlinked
   directory. On Windows, clone with `core.symlinks=true` (and Developer Mode) to get real links.
 
@@ -22,6 +25,7 @@ owned by [`AGENTS.md`](../../AGENTS.md#agent-skills).
 | `systematic-debugging` | [obra/superpowers](https://github.com/obra/superpowers) | `main` (Oct 2026) | MIT, see `LICENSE-superpowers` |
 | `verification-before-completion` | [obra/superpowers](https://github.com/obra/superpowers) | `main` (Oct 2026) | MIT, see `LICENSE-superpowers` |
 | `review-guidelines` | this repository | — | — |
+| `qa`, `qa-web`, `qa-backend` | this repository (`.factory/skills/qa*/`) | — | — |
 
 Vendored skills are copied unmodified. To update one, re-copy its directory from the source and
 update the commit above; put project-specific adjustments in `AGENTS.md`, not in the skill.
